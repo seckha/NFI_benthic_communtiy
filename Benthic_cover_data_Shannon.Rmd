@@ -1,0 +1,444 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+# NFI Benthic Cover data analysis and PCA
+
+
+This is a script for data clean up and analysis of benthic cover data. Data collected from photoquadrats in Emily and Slaughter Bay, over two time points. 
+
+TP1: Dec (2020) EB, SB
+TP2: April (2021) EB, SB
+TP3: April (2022) EB, SB,CB
+TP4: September (2022) EB, SB,CB
+TP5: December (2022) EB, SB,CB
+
+Total of n = 12 transects per TP. n ~ 10 photoquads per transect (note: in some instances n is lower than 0, this was due to error in the field or in post-processing)
+
+All hard coral and algal taxa were identified to genera. Where multiple growth forms existed within each genera, data has been originally binned into these growth forms (within genera). Growth form bins for each genera will be grouped to genera for quantification of cover. 
+
+Script aims:  
+
+A) Tidy data format (long)
+
+B) Filter coral genera into categories based on cover.
+      
+C) PCA - Generate driver variables that can be used in modelling disease occurence and disease severity. 
+
+Data download and tidy
+
+```{r}
+rm(list = ls())
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(ggthemes)
+library(factoextra) 
+library(tidymodels)
+library(readxl)
+
+cover <- read_excel("Benthic_cover.xlsx")
+
+```
+
+### A) Tidy data format (long)
+
+
+```{r}
+
+# Transpose the data frame
+# t.cover <- cover %>% gather(Genera, Cover, Acanthastrea:Valspp)
+# use pivot_longer instead of gather - does the same thing but is the newer function
+t.cover <- cover %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
+
+```
+
+Organise cover ID into categories 
+
+```{r}
+
+# Nested if else to create a new variable where genera are sorted into benthic category type.
+
+# First list the values in the Genera column
+
+benthic.cats <- t.cover %>%
+  mutate(Category = 
+    ifelse(Genera %in% c("Acanthastrea","Alveopora","Astrea","Euphyllia", "Paragoni","Pectinia","Platy", "Plesiastrea","Porites","Psammo","Stylophora","Cyphastrea","Homophyllia.sp.","Lobophyllia","Turbinaria","PoritPale","PortiPal"),
+             "Other_hard_coral",
+    ifelse(Genera %in% c("Pocillopora","Styloph","B_Pocillo","B_Styloph","PPoc"),
+            "Pocillipora",
+    ifelse(Genera %in% c("Acropora_br", "Acropora_pl","PACR_br","PAcr_tab"),
+           "Acropora",
+    ifelse(Genera %in% c("Monti_encr","Monti_fol","B_Monti","B_MontiEnc","PEncr"),
+           "Montipora",
+    ifelse(Genera %in% c("cyafil","Bryopsis","Chaeto","Chlor","MACR_Fil_A"),
+           "Microalgae_filamentous",
+    ifelse(Genera %in% c("Turf"),
+           "Turf",
+    ifelse(Genera %in% c("TAS"),
+           "Turf_sediment_matrix",
+    ifelse(Genera %in% c("CYANO_DHC"),
+           "Red_cyanobacteria",
+    ifelse(Genera %in% c("Cyanob"),
+           "Lyngbya",
+    ifelse(Genera %in% c("AL_fol","Dasy","Ulva"),
+           "Foliose",
+    ifelse(Genera %in% c("AL_fleshy","Amansia","Asparago","CodFrag","Hyp","Laur","Mal","Sargassum"),
+           "Fleshy",
+    ifelse(Genera %in% c("Colpo","Hormo","Hydrocl","MACR_LTH_O","MLRP","Padina","Ploc","Valspp"),
+           "Leathery",
+    ifelse(Genera %in% c("ampart","calc_macro","Halimeda","HALY","Tri_fra"),
+           "Calcified_macroalgae",
+    ifelse(Genera %in% c("Rhodo","CCA"),
+           "CCA",
+    ifelse(Genera %in% c("Dictyopter","Dictyota"),
+           "Dictyota",
+    ifelse(Genera %in% c("Caulcupre","CauRac"),
+           "Caulerpa",
+    ifelse(Genera %in% c("SC","Anemone"), 
+             "Soft_coral",
+    ifelse(Genera %in% c("SP","Zoo","BInv","CalcInvert"), 
+             "Other_benthic_invert",
+    ifelse(Genera %in% "ASCD", 
+             "Ascidian",
+    ifelse(Genera %in% c("Sand","Sediment"),
+           "Sand_sediment",
+    ifelse(Genera %in% "D_coral",
+           "Dead_coral",
+    ifelse(Genera %in% "Rubble",
+           "Rubble", NA )))))))))))))))))))))))
+           
+# Search for any NAs
+filter(benthic.cats, Category == "NA")
+# 0 rows!
+
+```
+
+# Add another column with the categories in groups = even broader groups
+# Filter categories 
+
+a) Hard coral cover 
+b) Macroalgae 
+d) Microalgae
+e) Cyanos (Red and black)
+d) Turf and sediment
+e) Sediment abd sand
+f) Dead coral 
+
+```{r}
+
+benthic.cats.grouped <- 
+benthic.cats %>%
+  mutate(Group = 
+    ifelse(Category %in% c("Other_hard_coral","Pocillipora","Acropora","Montipora"),
+             "Hard_coral",
+    ifelse(Category %in% c("Foliose","Fleshy","Leathery","Calcified_macroalgae","CCA","Dictyota","Caulerpa"),
+            "Macroalgae",
+    ifelse(Category %in% c("Microalgae_filamentous"),
+           "Microalgae",
+    ifelse(Category %in% "Turf",
+           "Turf",
+    ifelse(Category %in% "Turf_sediment_matrix",
+           "Turf_sediment_matrix",
+    ifelse(Category %in% c("Lyngbya","Red_cyanobacteria"),
+           "Cyanos",
+    ifelse(Category %in% c("Other_benthic_invert","Soft_coral","Ascidian"), 
+             "Other_benthic_invert",
+    ifelse(Category %in% "Sand_sediment",
+           "Sand_sediment",
+    ifelse(Category%in% c("Dead_coral","Rubble"),
+           "Dead_coral", NA ))))))))))
+
+# find NAs
+filter(benthic.cats.grouped, Group == "NA")
+# 0 rows with NAs!
+
+ggplot(benthic.cats.grouped, aes(x = TP, y = mean.cover, fill = Group)) +
+      geom_bar(position="fill", stat="identity") +
+      scale_fill_viridis_d() +
+  facet_wrap(~Site)
+
+```
+
+
+Mean cover per category per transect 
+
+```{r}
+# Photoquadrat sum
+# Sum cover by Date (TP), genera and transect 
+  # Transect_no = photoquadrat number 1-10
+cats.cover.sum <- benthic.cats %>% group_by(TP,Site,Transect_ID,Transect_no,Category) %>%
+  summarise(Sum_cover = sum(Cover))
+
+# Transect mean (average of the 10 photoquadrats per transect)
+cats.cover.mean <- cats.cover.sum %>% group_by(TP,Site,Transect_ID,Category) %>%
+  summarise(mean_cover = mean(Sum_cover))
+
+# Site levels means at each time point
+
+# Average across sites for plot 
+  # EB, SB, CB
+cats.site.mean <- cats.cover.mean %>% 
+  group_by(TP,Site,Category) %>% 
+  summarise(mean.cover = mean(mean_cover), # it needs to be mean.cover and not mean_cover because otherwise it won't calculate SD or SE
+  SD = sd(mean_cover),
+  SE= sd(mean_cover)/sqrt(n()))
+```
+
+
+Quick plot to visualise these benthic categories 
+
+```{r}
+
+# order the time points from Dec 2020 - April 2023
+cats.site.mean$TP <- as.factor(cats.site.mean$TP)
+x <- c("Dec_2020","April_2021","April_2022","Sept_2022","Dec_2022","April_2023")
+cats.site.mean$TP <- factor(cats.site.mean$TP, levels = x)
+
+ggplot(cats.site.mean, aes(x = TP, y = mean.cover, fill = Category)) +
+      geom_bar(position="fill", stat="identity") +
+      scale_fill_viridis_d() +
+  facet_wrap(~Site)
+
+# there is a site with named NA - which one is it?
+unique(cats.site.mean$TP)
+unique(cover$TP) # some EB0 are missing
+```
+
+# Acropora plots 
+Acropora cover over time at EB, SB and CB 
+
+```{r}
+acro_master <- grouped.cover.sum %>% filter(Category == "Acropora")
+
+x <- c("Dec_2020","April_2021","April_2022","Sept_2022","Dec_2022","April_2023")
+
+acro_master$TP <- factor(acro_master$TP, levels = x)
+
+ggplot(acro_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+  
+# Box plots 
+b.cover.mean$TP <- as.factor(b.cover.mean$TP)
+
+x <- c("Dec_2020","April_2021","April_2022","Sept_2022","Dec_2022","April_2023")
+
+b.cover.mean$TP <- factor(b.cover.mean$TP, levels = x)
+
+acro_transect_master <- b.cover.mean %>% filter(Category == "Acropora")
+
+write.csv(acro_transect_master, "acro_cover_transects.csv")
+
+acro_transect_master$TP <- factor(acro_transect_master$TP, levels = x)
+
+ggplot(acro_transect_master, aes(TP,mean_cover)) +
+  geom_boxplot() +
+  facet_wrap(~Site) +
+  theme_bw()
+```
+
+Other coral 
+
+```{r}
+monti_master <- grouped.cover.sum %>% filter(Category == "Montipora")
+
+ggplot(monti_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+
+
+poc_master <- grouped.cover.sum %>% filter(Category == "Pocillipora")
+
+ggplot(poc_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+
+
+other_coral_master <- grouped.cover.sum %>% filter(Category == "Other_hard_coral")
+
+ggplot(other_coral_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+
+
+```
+
+```{r}
+
+caulerpa_master <- grouped.cover.sum %>% filter(Category == "Caulerpa")
+
+ggplot(caulerpa_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Caulerpa cover") 
+
+dictyota_master <- grouped.cover.sum %>% filter(Category == "Dictyota")
+
+ggplot(dictyota_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Dictyota cover") 
+
+redcyano_master <- grouped.cover.sum %>% filter(Category == "Red_cyanobacteria")
+
+ggplot(redcyano_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+   scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Red cyano cover") 
+
+Lyngbya_master <- grouped.cover.sum %>% filter(Category == "Lyngbya")
+
+ggplot(Lyngbya_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+   scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Lyngbya cover") 
+
+Fleshy_master <- grouped.cover.sum %>% filter(Category == "Fleshy")
+
+ggplot(Fleshy_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Fleshy cover") 
+
+Calcifiedmacro_master <- grouped.cover.sum %>% filter(Category == "Calcified_macroalgae")
+
+ggplot(Calcifiedmacro_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+   scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site)  +
+  ggtitle("Calcified macro cover") 
+
+Leathery_master <- grouped.cover.sum %>% filter(Category == "Leathery")
+
+ggplot(Leathery_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Leathery macro cover") 
+
+Ascidian_master <- grouped.cover.sum %>% filter(Category == "Ascidian")
+
+ggplot(Ascidian_master, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  scale_x_discrete(guide = guide_axis(angle = 90)) +
+  theme_bw() +
+  facet_wrap(~Site) +
+  ggtitle("Ascidian cover")
+```
+
+# Hard coral cover 
+
+```{r}
+
+hard.cover.sum <- hard_coral_master %>% 
+  group_by(TP,Site,Transect_ID,Transect_no) %>% 
+  summarise(sum.cover=sum(Cover))
+
+hard.cover.mean <- hard.cover.sum  %>% 
+  group_by(TP,Site,Transect_ID) %>% 
+  summarise(mean.cover.tr=mean(sum.cover))
+
+hard.cover.final.mean <- hard.cover.mean  %>% 
+  group_by(TP,Site) %>% 
+  summarise(mean.cover=mean(mean.cover.tr),
+            SD = sd(mean.cover.tr),
+  SE= sd(mean.cover.tr)/sqrt(n()))
+
+hard.cover.final.mean$TP <- factor(hard.cover.final.mean$TP, levels = x)
+
+ggplot(hard.cover.final.mean, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+
+ggplot(hard.cover.sum , aes(TP,sum.cover)) + 
+  geom_boxplot() +
+  facet_wrap(~Site)
+
+
+```
+
+# Macroalgal cover
+
+```{r}
+
+macroalgal_master <- benthic.cats.grouped %>% filter(Group == "Macroalgae")
+
+macroalgae.cover.sum <- macroalgal_master %>% 
+  group_by(TP,Site,Transect_ID,Transect_no) %>% 
+  summarise(sum.cover=sum(Cover))
+
+macroalgae.cover.mean <- macroalgae.cover.sum  %>% 
+  group_by(TP,Site,Transect_ID) %>% 
+  summarise(mean.cover.tr=mean(sum.cover))
+
+macroalgae.cover.final.mean <- macroalgae.cover.mean  %>% 
+  group_by(TP,Site) %>% 
+  summarise(mean.cover=mean(mean.cover.tr),
+            SD = sd(mean.cover.tr),
+  SE= sd(mean.cover.tr)/sqrt(n()))
+
+macroalgae.cover.final.mean$TP <- factor(macroalgae.cover.final.mean$TP, levels = x)
+
+ggplot(macroalgae.cover.final.mean, aes(TP,mean.cover)) +
+ geom_point() +
+ geom_errorbar(aes(ymin = mean.cover - SE, ymax = mean.cover + SE)) +
+  #geom_label(stat = 'summary', fun.y=mean, aes(label = round(..y.., 1)), nudge_x =0.5 , hjust = 3) +
+  xlab ("TP") +
+  facet_wrap(~Site)
+
+macroalgae.cover.sum$TP <- factor(macroalgae.cover.sum$TP, levels = x)
+
+ggplot(macroalgae.cover.sum , aes(TP,sum.cover)) + 
+  geom_boxplot() +
+  facet_wrap(~Site)
+
+
+```
+
+# Relative cover 
+Ratio of hardcover to macroalgae (check this out with turf, cyano etc. too)
+
+```{r}
+
+
+```
+
+
