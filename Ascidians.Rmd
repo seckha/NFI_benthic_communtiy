@@ -1,0 +1,38 @@
+---
+title: "Ascidians"
+author: "Shannon Eckhardt"
+date: "2023-06-04"
+output: html_document
+---
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(dplyr)
+library(readxl)
+```
+
+Import data
+```{r}
+benthic.data <- read_excel("Benthic_cover.xlsx")
+```
+
+Extract ascidian data
+```{r}
+ascidians.full <- benthic.data[, c("Image ID", "Image name", "TP", "Site", "Transect_ID", "Transect_no", "ASCD")]
+```
+
+Group by time point and site
+```{r}
+# Summed up cover = how many is there
+ascidians.sum <- ascidians.full %>%
+  group_by(TP, Site) %>%
+  summarize(sum_cover = sum(ASCD))
+
+# Mean cover = on average, how many is there per TP and Site
+ascidians.mean <- 
+```
+
+
+
+
