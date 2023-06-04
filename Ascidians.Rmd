@@ -22,15 +22,40 @@ Extract ascidian data
 ascidians.full <- benthic.data[, c("Image ID", "Image name", "TP", "Site", "Transect_ID", "Transect_no", "ASCD")]
 ```
 
+Convert TP to date format
+```{r}
+month_year <- strsplit(ascidians.full$TP, "_")
+month <- sapply(month_year, function(x) x[1])
+year <- sapply(month_year, function(x) x[2])
+months <- c("January", "February", "March", "April", "May", "June", "July",
+            "August", "Sept", "October", "November", "Dec") 
+            # Sept and Dec because that's how they're saved in ascidians.full
+month_numeric <- match(month, months)
+year_numeric <- as.numeric(year)
+date <- as.Date(paste(year_numeric, month_numeric, "01", sep = "-"))
+
+# Save the date in a new column, other than TP
+ascidians.full$Date <- date
+```
+
+
 Group by time point and site
 ```{r}
 # Summed up cover = how many is there
 ascidians.sum <- ascidians.full %>%
-  group_by(TP, Site) %>%
+  group_by(TP, Site, Date) %>%
   summarize(sum_cover = sum(ASCD))
 
+# simple plot
+ggplot(ascidians.sum, aes(x = TP, y = sum_cover, fill = Site)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Time point", y = "Count", fill = "Site") +
+  ggtitle("Count of ascidians over time and per site") +
+  theme_classic()
+
+
 # Mean cover = on average, how many is there per TP and Site
-ascidians.mean <- 
+# ascidians.mean <- 
 ```
 
 
