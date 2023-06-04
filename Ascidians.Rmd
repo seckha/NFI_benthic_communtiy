@@ -50,9 +50,9 @@ ascidians.sum <- ascidians.full %>%
 ascidians.sum <- na.omit(ascidians.sum)
 
 # order the TPs
-# this does not work because then the 69 ASCD suddenly show up in April 2022, not April 2023
-ascidians.sum$TP <- as.factor(ascidians.sum$TP)
-levels(ascidians.sum$TP) <- c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023")
+ascidians.sum <- ascidians.sum %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
 
 # simple plot
 ggplot(ascidians.sum, aes(x = TP, y = sum_cover, fill = Site)) +
