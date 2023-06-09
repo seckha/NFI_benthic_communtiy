@@ -65,7 +65,7 @@ ggplot(ascidians.sum, aes(x = TP, y = sum_cover, fill = Site)) +
 # Mean cover = on average, how many is there per TP and Site
 # ascidians.mean <- 
 ```
-
+***PERCENT COVER***
 Percent cover per transect and per site
 Boxplots with SE
 Dotplots with SE
@@ -73,23 +73,48 @@ Dotplots with SE
 # pivot table
 t.cover <- benthic.data %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
 
-# calculate sum of cover values for each quadrat
-quadrat.sum.cover <- t.cover %>%
-  group_by(TP, Site, Transect_ID, Transect_no) %>%
-  summarize(quadrat_sum_cover = sum(Cover)) # logically each quadrat has a cover of 100 because there are 100 points
+# calculate mean cover & SD and SE by transect
+mean.cover <- t.cover %>%
+  group_by(TP, Site, Transect_ID, Genera) %>%
+  summarize(mean_cover = mean(Cover)) %>%
+  mutate(SE = sd(mean_cover) / sqrt(n()),
+         SD = sd(mean_cover))
+
+
+
 
 # calculate sum of cover values for each transect - rowSums
 # make new column called percent_cover - multiply by 100 to get percent
-transect.percent.cover <- t.cover %>%
+transect.percent.cover <- mean.cover %>%
   group_by(TP, Site, Transect_ID) %>%
-  summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop",
-            SE= sd(percent_cover)/sqrt(n()))
+  summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop") %>%
+  mutate(SE = sd(percent_cover)/sqrt(n()))
 
-# SE does not work- do I need to calculate percent_cover by quadrat and then get the mean per transect?
+# percent cover per site
+site.percent.cover <- mean.cover %>%
+  group_by(TP, Site) %>%
+  summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop") %>%
+  mutate(SE = sd(percent_cover)/sqrt(n()))
 
+# percent cover per time point
+tp.percent.cover <- mean.cover %>%
+  group_by(TP) %>%
+  summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop") %>%
+  mutate(SE = sd(percent_cover)/sqrt(n()))
+
+
+
+# plot per time point -> not the correct plot -> need to integrate TP and possibly site?
+ggplot(transect.percent.cover, aes(x = Transect_ID, y = percent_cover)) +
+  geom_boxplot() +
+  geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
+                width = 0.2, color = "black", size = 0.8) +
+  xlab("Timepoint") +
+  ylab("Percent Cover (%)") +
+  theme_classic()
 ```
 
-
+***FREQUENCY OF OCCURRENCE***
 Calculate frequency of occurrence (presented as table with TP, Site and FOC) = proportion of transects that have them present (presence/absence) per TP = how widespread it could be in the bay
   For each site EB,SB, CB (then maybe group SB and EB as lagoon)
   
@@ -127,7 +152,7 @@ TP.foc <- ascd.occurr %>%
   summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_ID))*100)
 ```
 
-Relative cover
+***Relative cover***
 - take out all hard coral substrate and not sand
 - for anything that isn't coral or sand, what proportion is made up of ascidians
 - how much of 100% is ascidian cover
@@ -160,8 +185,6 @@ rel.ascd.cover <-rel.cover.mean.transects %>%
 
 # if ASCD = 0 -> NaN
 # if total sum = 0 -> Inf
-
-
 ```
 
 
