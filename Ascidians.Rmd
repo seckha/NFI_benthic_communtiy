@@ -66,6 +66,36 @@ ggplot(ascidians.sum, aes(x = TP, y = sum_cover, fill = Site)) +
 # ascidians.mean <- 
 ```
 
+Percent cover per transect and per site
+Boxplots with SE
+Dotplots with SE
+```{r}
+# pivot table
+t.cover <- benthic.data %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
 
+# calculate sum of cover values for each quadrat
+quadrat.sum.cover <- t.cover %>%
+  group_by(TP, Site, Transect_ID, Transect_no) %>%
+  summarize(quadrat_sum_cover = sum(Cover)) # logically each quadrat has a cover of 100 because there are 100 points
+
+# calculate sum of cover values for each transect - rowSums
+# make new column called percent_cover - multiply by 100 to get percent
+transect.percent.cover <- t.cover %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop")
+```
+
+
+Calculate frequency of occurrence (presented as table with TP, Site and FOC) = proportion of transects that have them present (presence/absence) per TP = how widespread it could be in the bay
+  For each site EB,SB, CB (then maybe group SB and EB as lagoon)
+  
+Relative cover
+- take out all hard coral substrate and not sand
+- for anything that isn't coral or sand, what proportion is made up of ascidians
+- how much of 100% is ascidian cover
+- sum of ascidians divided by sum all other cover (including ascidians) minus hard coral and sand
+- are they making up more cover than algae in some places
+
+Observation: where are the ascidians growing on? + close-up photographs? which "species"?
 
 
