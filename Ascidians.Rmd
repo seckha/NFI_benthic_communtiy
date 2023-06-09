@@ -110,19 +110,19 @@ length(benthic.data$Transect_no)
 # calculate FOC for each TRANSECT_ID
 transect.foc <- ascd.occurr %>%
   group_by(TP, Site, Transect_ID) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
 # not sure if this length(benthic.data$Transect_no) is correct
 
 # calculate FOC for each Site
 site.foc <- ascd.occurr %>%
   group_by(TP, Site) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
 # do you still use Transect_no here?
 
 # calculate FOC per TP
 TP.foc <- ascd.occurr %>%
   group_by(TP) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
 ```
 
   
