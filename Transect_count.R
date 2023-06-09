@@ -15,3 +15,4 @@ total_unique_IDs <- sum(no.trans$unique_IDs) # 84 transects in total
 no.trans.per.site <- df %>%
   group_by(TP, Site) %>%
   summarize(unique_IDs = n_distinct(Transect_ID))
+  # always 6 in EB and SB, 3 in CB
