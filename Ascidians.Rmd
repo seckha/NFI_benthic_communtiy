@@ -134,6 +134,40 @@ Relative cover
 - sum of ascidians divided by sum all other cover (including ascidians) minus hard coral and sand
 - are they making up more cover than algae in some places
 
+Relative ascidian cover = sum(ascidian cover) / sum(all other cover)
+```{r}
+colnames(benthic_data)
+# make new data frame with columns without hard corals and sand (easier than taking them out of current df)
+# also excluded dead coral and rubble
+selected.cols <- c("TP", "Site", "Transect_ID", "Transect_no", "Anemone", "ASCD", "BInv", "CalcInvert", "SC", "SP", "Zoo", "Sediment", "Rhodo", "cyafil", "Cyanob", "TAS", "AL_fleshy", "AL_fol", "Amansia",  "ampart", "Asparago", "Bryopsis","calc_macro",  "Caulcupre", "CauRac", "CCA", "Chaeto", "Chlor", "CodFrag", "Colpo", "CYANO_DHC","Dasy","Dictyopter","Dictyota", "Halimeda","HALY", "Hormo", "Hydrocl", "Hyp", "Laur","MACR_Fil_A","MACR_LTH_O","Mal","MLRP", "Padina", "Ploc", "Sargassum", "Tri_fra", "Turf", "Ulva","Valspp" )
+rel.cover.data <- benthic.data[selected.cols]
+
+# calculate mean cover by transect -> transpose first
+t.rel.cover <- rel.cover.data %>% pivot_longer(c(Anemone:Valspp), names_to = "Genera", values_to = "Cover")
+
+rel.cover.mean.transects <- t.rel.cover %>%
+  group_by(TP, Site, Transect_ID, Genera) %>%
+  summarize(mean_cover = mean(Cover))
+
+# transpose back
+rel.cover.mean.transects <- rel.cover.mean.transects %>%
+  pivot_wider(names_from = Genera, values_from = mean_cover)
+
+# relative ascidian cover = sum(ascidian cover) / sum(all other cover)
+rel.ascd.cover <-rel.cover.mean.transects %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(rel_ascd_cover = ASCD/sum(AL_fleshy:cyafil))
+
+# if ASCD = 0 -> NaN
+# if total sum = 0 -> Inf
+
+
+```
+
+
+
+
+
 Observation: where are the ascidians growing on? + close-up photographs? which "species"?
 
 
