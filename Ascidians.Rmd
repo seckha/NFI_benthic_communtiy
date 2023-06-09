@@ -95,37 +95,38 @@ Calculate frequency of occurrence (presented as table with TP, Site and FOC) = p
   
 % frequency of ascidians = (# of quadrats where ascidians occur / total # of quadrats examined)* 100
 ```{r}
-# number of quadrats where ascidians occur
-# make new column - if ascidian Cover >= 1 -> present, otherwise absent
-# then calculate length(ascd_occurrence == "yes")
-ascd.occurr <- benthic.data %>%
+# first average benthic data at transect level (average over 10 quadrats)
+mean.cover.transects <- t.cover %>%
+  group_by(TP, Site, Transect_ID, Genera) %>%
+  summarize(mean_cover = mean(Cover))
+
+# pivot long table back to wide
+mean.cover.transects <- mean.cover.transects %>%
+  pivot_wider(names_from = Genera, values_from = mean_cover)
+
+ascd.occurr <- mean.cover.transects %>%
   mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent"))
-# ascd.occurr$ascd_occurrence -> works
 
-sum(ascd.occurr$ascd_occurrence == "present") # only 14 quadrats where ascidians occur??
-
-# total number of quadrats observed
-length(benthic.data$Transect_no)
+sum(ascd.occurr$ascd_occurrence == "present") # only 8 transects where ascidians occur
 
 # calculate FOC for each TRANSECT_ID
 transect.foc <- ascd.occurr %>%
   group_by(TP, Site, Transect_ID) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_ID))*100)
 # not sure if this length(benthic.data$Transect_no) is correct
 
 # calculate FOC for each Site
 site.foc <- ascd.occurr %>%
   group_by(TP, Site) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_ID))*100)
 # do you still use Transect_no here?
 
 # calculate FOC per TP
 TP.foc <- ascd.occurr %>%
   group_by(TP) %>%
-  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_no))*100)
+  summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_ID))*100)
 ```
 
-  
 Relative cover
 - take out all hard coral substrate and not sand
 - for anything that isn't coral or sand, what proportion is made up of ascidians
