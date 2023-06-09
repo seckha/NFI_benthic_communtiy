@@ -82,12 +82,49 @@ quadrat.sum.cover <- t.cover %>%
 # make new column called percent_cover - multiply by 100 to get percent
 transect.percent.cover <- t.cover %>%
   group_by(TP, Site, Transect_ID) %>%
-  summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop")
+  summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop",
+            SE= sd(percent_cover)/sqrt(n()))
+
+# SE does not work- do I need to calculate percent_cover by quadrat and then get the mean per transect?
+
 ```
 
 
 Calculate frequency of occurrence (presented as table with TP, Site and FOC) = proportion of transects that have them present (presence/absence) per TP = how widespread it could be in the bay
   For each site EB,SB, CB (then maybe group SB and EB as lagoon)
+  
+% frequency of ascidians = (# of quadrats where ascidians occur / total # of quadrats examined)* 100
+```{r}
+# number of quadrats where ascidians occur
+# make new column - if ascidian Cover >= 1 -> present, otherwise absent
+# then calculate length(ascd_occurrence == "yes")
+ascd.occurr <- benthic.data %>%
+  mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent"))
+# ascd.occurr$ascd_occurrence -> works
+
+sum(ascd.occurr$ascd_occurrence == "present") # only 14 quadrats where ascidians occur??
+
+# total number of quadrats observed
+length(benthic.data$Transect_no)
+
+# calculate FOC for each TRANSECT_ID
+transect.foc <- ascd.occurr %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(foc = sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))
+# not sure if this length(benthic.data$Transect_no) is correct
+
+# calculate FOC for each Site
+site.foc <- ascd.occurr %>%
+  group_by(TP, Site) %>%
+  summarize(foc = sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))
+# do you still use Transect_no here?
+
+# calculate FOC per TP
+TP.foc <- ascd.occurr %>%
+  group_by(TP) %>%
+  summarize(foc = sum(ascd_occurrence == "present") / length(benthic.data$Transect_no))
+```
+
   
 Relative cover
 - take out all hard coral substrate and not sand
