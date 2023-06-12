@@ -61,9 +61,6 @@ ggplot(ascidians.sum, aes(x = TP, y = sum_cover, fill = Site)) +
   ggtitle("Count of ascidians over time and per site") +
   theme_classic()
 
-
-# Mean cover = on average, how many is there per TP and Site
-# ascidians.mean <- 
 ```
 ***PERCENT COVER***
 Percent cover per transect and per site
@@ -103,14 +100,29 @@ tp.percent.cover <- mean.cover %>%
   mutate(SE = sd(percent_cover)/sqrt(n()))
 
 
+# order the TPs
+transect.percent.cover <- transect.percent.cover %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
 
+```
+
+Plots
+```{r}
 # plot per time point -> not the correct plot -> need to integrate TP and possibly site?
-ggplot(transect.percent.cover, aes(x = Transect_ID, y = percent_cover)) +
+ggplot(transect.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot() +
   geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
-                width = 0.2, color = "black", size = 0.8) +
-  xlab("Timepoint") +
-  ylab("Percent Cover (%)") +
+                width = 0.4, size = 0.7) +
+  labs(x = "Time Points", y = "Percent Cover (%)") +
+  scale_fill_discrete(name = "Site") +
+  theme_classic()
+
+# Dotplot
+ggplot(transect.percent.cover, aes(x = Site, y = percent_cover, fill = TP)) +
+  geom_dotplot(binaxis = "y", stackdir = "center", dotsize = 0.6, show.legend = TRUE) +
+  labs(x = "Time Points", y = "Percent Cover (%)") +
+  scale_fill_discrete(name = "Site") +
   theme_classic()
 ```
 
