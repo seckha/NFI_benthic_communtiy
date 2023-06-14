@@ -77,6 +77,8 @@ mean.cover <- t.cover %>%
   mutate(SE = sd(mean_cover) / sqrt(n()),
          SD = sd(mean_cover))
 
+ascidians.full
+
 
 
 
@@ -116,6 +118,28 @@ ggplot(transect.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
                 width = 0.4, size = 0.7) +
   labs(x = "Time Points", y = "Percent Cover (%)") +
   scale_fill_discrete(name = "Site") +
+  theme_classic()
+
+# plot per time point -> not the correct plot -> need to integrate TP and possibly site?
+
+# Boxplot
+str(transect.percent.cover)
+ggplot(transect.percent.cover , aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot() +
+  labs(x = "Time Points", y = "Percent Cover (%)") +
+  scale_fill_discrete(name = "Site") +
+  theme_classic()
+
+str(site.percent.cover)
+# plot per time point -> not the correct plot -> need to integrate TP and possibly site?
+ggplot(site.percent.cover, aes(x = TP, y = percent_cover, colour = Site)) +
+  geom_point(position=position_dodge(.9)) +
+  geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
+                width = 0.4, size = 0.7,
+                 position=position_dodge(.9)) +
+  labs(x = "Time Points", y = "Percent Cover (%)") +
+  scale_fill_discrete(name = "Site") +
+  scale_colour_discrete(name = "Site") +
   theme_classic()
 
 # Dotplot
