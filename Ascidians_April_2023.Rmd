@@ -52,3 +52,60 @@ quadat.image.id <- benthic.data.2023 %>%
 quadrat.image.id.present <- quadat.image.id[quadat.image.id$ascd_occurrence == "present",] # 8 quadrats
 ```
 
+***Counts over time for the transects that have ascidians***
+```{r}
+sum(benthic.data$ASCD)
+t.benthic.data <- benthic.data %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
+
+sum.count <- t.benthic.data %>%
+  group_by(TP, Site, Genera) %>%
+  summarize(sum_count = sum(Cover))
+
+# calculate mean cover per transect
+mean.cover <- t.benthic.data %>%
+  group_by(TP, Site, Transect_ID, Genera) %>%
+  summarize(mean_cover = mean(Cover)) %>%
+  mutate(SE = sd(mean_cover) / sqrt(n()),
+         SD = sd(mean_cover))
+
+# calculate percent cover per site
+site.percent.cover <- mean.cover %>%
+  group_by(TP, Site) %>%
+  summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop") %>%
+  mutate(SE = sd(percent_cover)/sqrt(n()))
+
+# sort TPs
+site.percent.cover <- site.percent.cover %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
+
+
+
+# back to wide format
+sum.count <- sum.count %>%
+  pivot_wider(names_from = Genera, values_from = sum_count)
+
+# presence/absence of ascidians per row = per Transect_ID
+ascd.occurr <- sum.count %>%
+  mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent")) # only present on CB02 and CB03
+
+allyears.transect.present <- ascd.occurr[ascd.occurr$ascd_occurrence == "present",]
+
+
+
+# calculate percent cover on quadrat level = Transect_no to make boxplots
+quadrat.percent.cover <- t.benthic.data %>%
+  group_by(TP, Site, Transect_ID, Transect_no) %>%
+  summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop")
+
+# sort TPs
+quadrat.percent.cover <- quadrat.percent.cover %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
+
+# boxplot based on quadrat level percent cover of ascidians
+ggplot(quadrat.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot() +
+  theme_classic()
+```
+
