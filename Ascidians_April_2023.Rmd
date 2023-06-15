@@ -1,0 +1,54 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(dplyr)
+library(readxl)
+```
+
+```{r}
+benthic.data <- read_excel("Benthic_cover.xlsx")
+ascidians.full <- benthic.data[, c("Image ID", "Image name", "TP", "Site", "Transect_ID", "Transect_no", "ASCD")]
+```
+
+Extract April 2023 and 2021 data (2023 - 3 years after bleaching, 2021 - 1 year after bleaching)
+```{r}
+benthic.data.2023 <- benthic.data[benthic.data$TP == "April_2023",]
+
+sum(benthic.data.2023$ASCD) # 69 ASCD recorded in 2023
+
+# long format to group
+t.benthic.data.2023 <- benthic.data.2023 %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
+
+```
+***Absence/presence in transects***
+Presence/absence table of ascidians
+```{r}
+# group by transect
+sum.count.2023 <- t.benthic.data.2023 %>%
+  group_by(Site, Transect_ID, Genera) %>%
+  summarize(sum_count = sum(Cover))
+
+# back to wide format
+sum.count.2023 <- sum.count.2023 %>%
+  pivot_wider(names_from = Genera, values_from = sum_count)
+
+# presence/absence of ascidians per row = per Transect_ID
+ascd.occurr.2023 <- sum.count.2023 %>%
+  mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent")) # only present on CB02 and CB03
+```
+
+***Absence/presence in quadrats***
+```{r}
+quadat.image.id <- benthic.data.2023 %>%
+  mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent"))
+
+# take all the rows out where ascd_occurrence == "present"
+quadrat.image.id.present <- quadat.image.id[quadat.image.id$ascd_occurrence == "present",] # 8 quadrats
+```
+

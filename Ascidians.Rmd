@@ -77,11 +77,6 @@ mean.cover <- t.cover %>%
   mutate(SE = sd(mean_cover) / sqrt(n()),
          SD = sd(mean_cover))
 
-ascidians.full
-
-
-
-
 # calculate sum of cover values for each transect - rowSums
 # make new column called percent_cover - multiply by 100 to get percent
 transect.percent.cover <- mean.cover %>%
@@ -101,35 +96,30 @@ tp.percent.cover <- mean.cover %>%
   summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop") %>%
   mutate(SE = sd(percent_cover)/sqrt(n()))
 
-
 # order the TPs
 transect.percent.cover <- transect.percent.cover %>%
   mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
   arrange(TP)
 
+site.percent.cover <- site.percent.cover %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
+
 ```
 
-Plots
+***Boxplot***
+no errorbars on boxplot
 ```{r}
-# plot per time point -> not the correct plot -> need to integrate TP and possibly site?
-ggplot(transect.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
-  geom_boxplot() +
-  geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
-                width = 0.4, size = 0.7) +
-  labs(x = "Time Points", y = "Percent Cover (%)") +
-  scale_fill_discrete(name = "Site") +
-  theme_classic()
-
-# plot per time point -> not the correct plot -> need to integrate TP and possibly site?
-
-# Boxplot
 str(transect.percent.cover)
 ggplot(transect.percent.cover , aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot() +
   labs(x = "Time Points", y = "Percent Cover (%)") +
   scale_fill_discrete(name = "Site") +
   theme_classic()
+```
 
+***Dotplot***
+```{r}
 str(site.percent.cover)
 # plot per time point -> not the correct plot -> need to integrate TP and possibly site?
 ggplot(site.percent.cover, aes(x = TP, y = percent_cover, colour = Site)) +
@@ -137,16 +127,10 @@ ggplot(site.percent.cover, aes(x = TP, y = percent_cover, colour = Site)) +
   geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
                 width = 0.4, size = 0.7,
                  position=position_dodge(.9)) +
-  labs(x = "Time Points", y = "Percent Cover (%)") +
+  labs(x = "Time Points", y = "Cover (%)") +
   scale_fill_discrete(name = "Site") +
   scale_colour_discrete(name = "Site") +
-  theme_classic()
-
-# Dotplot
-ggplot(transect.percent.cover, aes(x = Site, y = percent_cover, fill = TP)) +
-  geom_dotplot(binaxis = "y", stackdir = "center", dotsize = 0.6, show.legend = TRUE) +
-  labs(x = "Time Points", y = "Percent Cover (%)") +
-  scale_fill_discrete(name = "Site") +
+  ylim(0,2.5) +
   theme_classic()
 ```
 
@@ -168,6 +152,9 @@ mean.cover.transects <- mean.cover.transects %>%
 ascd.occurr <- mean.cover.transects %>%
   mutate(ascd_occurrence = ifelse(ASCD != 0, "present", "absent"))
 
+# pick out TP, Sites and ascd_occurrence
+
+
 sum(ascd.occurr$ascd_occurrence == "present") # only 8 transects where ascidians occur
 
 # calculate FOC for each TRANSECT_ID
@@ -180,7 +167,6 @@ transect.foc <- ascd.occurr %>%
 site.foc <- ascd.occurr %>%
   group_by(TP, Site) %>%
   summarize(foc = (sum(ascd_occurrence == "present") / length(ascd.occurr$Transect_ID))*100)
-# do you still use Transect_no here?
 
 # calculate FOC per TP
 TP.foc <- ascd.occurr %>%
@@ -197,7 +183,7 @@ TP.foc <- ascd.occurr %>%
 
 Relative ascidian cover = sum(ascidian cover) / sum(all other cover)
 ```{r}
-colnames(benthic_data)
+colnames(benthic.data)
 # make new data frame with columns without hard corals and sand (easier than taking them out of current df)
 # also excluded dead coral and rubble
 selected.cols <- c("TP", "Site", "Transect_ID", "Transect_no", "Anemone", "ASCD", "BInv", "CalcInvert", "SC", "SP", "Zoo", "Sediment", "Rhodo", "cyafil", "Cyanob", "TAS", "AL_fleshy", "AL_fol", "Amansia",  "ampart", "Asparago", "Bryopsis","calc_macro",  "Caulcupre", "CauRac", "CCA", "Chaeto", "Chlor", "CodFrag", "Colpo", "CYANO_DHC","Dasy","Dictyopter","Dictyota", "Halimeda","HALY", "Hormo", "Hydrocl", "Hyp", "Laur","MACR_Fil_A","MACR_LTH_O","Mal","MLRP", "Padina", "Ploc", "Sargassum", "Tri_fra", "Turf", "Ulva","Valspp" )
