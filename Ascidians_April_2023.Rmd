@@ -98,14 +98,40 @@ quadrat.percent.cover <- t.benthic.data %>%
   group_by(TP, Site, Transect_ID, Transect_no) %>%
   summarize(percent_cover = sum(Cover[Genera == "ASCD"]) / sum(Cover) * 100, .groups = "drop")
 
+# transect percent cover
+transect.percent.cover <- mean.cover %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(percent_cover = sum(mean_cover[Genera == "ASCD"]) / sum(mean_cover) * 100, .groups = "drop")
+
 # sort TPs
 quadrat.percent.cover <- quadrat.percent.cover %>%
   mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
   arrange(TP)
 
+transect.percent.cover <- transect.percent.cover %>%
+  mutate(TP = factor(TP, levels = c("Dec_2020", "April_2021", "April_2022", "Sept_2022", "Dec_2022",  "April_2023"))) %>%
+  arrange(TP)
+
+
+
 # boxplot based on quadrat level percent cover of ascidians
 ggplot(quadrat.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot() +
+  labs(x = "Time Points", y = "Cover (%)") +
+  theme_classic()
+
+# boxplot based on transect level percent cover of ascidians
+ggplot(transect.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot() +
+  labs(x = "Time Points", y = "Cover (%)") +
+  theme_classic()
+
+ggplot(site.percent.cover, aes(x = TP, y = percent_cover, color = Site)) +
+  geom_point() +
+  labs(x = "Time Points", y = "Cover (%)") +
   theme_classic()
 ```
+***Frequency of occurrence per site***
+FOC = number of transects where ascidians were present / number of total transects
+e.g. there's 3 transects in total in CB, if there was ascidians present in 2 of them, then 2/3 = FOC
 

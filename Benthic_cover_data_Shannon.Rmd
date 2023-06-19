@@ -65,9 +65,9 @@ Organise cover ID into categories
 
 benthic.cats <- t.cover %>%
   mutate(Category = 
-    ifelse(Genera %in% c("Acanthastrea","Alveopora","Astrea","Euphyllia", "Paragoni","Pectinia","Platy", "Plesiastrea","Porites","Psammo","Stylophora","Cyphastrea","Homophyllia.sp.","Lobophyllia","Turbinaria","PoritPale","PortiPal"),
+    ifelse(Genera %in% c("Acanthastrea","Alveopora","Astrea","Euphyllia", "Paragoni","Pectinia","Platy", "Plesiastrea","Porites","Psammo","Cyphastrea","Homophyllia.sp.","Lobophyllia","Turbinaria","PoritPale","PortiPal"),
              "Other_hard_coral",
-    ifelse(Genera %in% c("Pocillopora","Styloph","B_Pocillo","B_Styloph","PPoc"),
+    ifelse(Genera %in% c("Pocillopora","Styloph","Stylophora","B_Pocillo","B_Styloph","PPoc"),
             "Pocillipora",
     ifelse(Genera %in% c("Acropora_br", "Acropora_pl","PACR_br","PAcr_tab"),
            "Acropora",
