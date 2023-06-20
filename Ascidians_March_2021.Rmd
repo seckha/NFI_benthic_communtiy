@@ -1,0 +1,48 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+rm(list=ls())
+
+library(dplyr)
+library(tidyverse)
+library(readxl)
+```
+
+```{r}
+master <- read_excel("master_data_updated_april_2023.xlsx")
+```
+
+Filter April 2021 data
+- How many transects are there in total
+- Of the total transects, how many transects have values over 0 in the column "All other"
+```{r}
+unique(master$TP) # maybe this is march 2021 not april 2021
+march2021 <- master[master$TP == "March_2021", ]
+
+t.march2021 <- march2021 %>% pivot_longer(c(`Acanthastrea Bleached`:Black_turf), names_to = "Genera", values_to = "Cover")
+
+total_transects <- t.march2021 %>%
+  group_by(Transect_ID, Genera) %>%
+  summarize(total_counts =sum(Cover))
+
+# total number of transects
+length(unique(march2021$Transect_ID))
+
+# how many transects with cover of All other > 0
+filtered_transects <- total_transects %>%
+  filter(Genera == "All other", total_counts > 0)
+
+length(unique(filtered_transects$Transect_ID))
+```
+How many quadrats (PQ) contain values > 0 for "All other"
+```{r}
+filtered_quadrats <- t.march2021 %>%
+  group_by(Transect_ID, PQ, Genera) %>%
+  filter(Genera == "All other", Cover > 0)
+
+length(unique(filtered_quadrats$PQ))
+```
+
