@@ -1,0 +1,191 @@
+---
+title: "Ascidians 2021 and 2023"
+author: "Shannon Eckhardt"
+date: "2023-06-26"
+output: html_document
+---
+
+This is the file for the report that looks at Ascidians in March 2021 and and April 2023, 1 and 3 years after the bleaching event in 2020.
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(stringr)
+```
+
+***2023***
+**Import data**
+
+RAW_EB_April2023 stems from the Master data - it contains over 15 transects for EB. All the transects that are above transect EB15 need to be removed because the 2021 data does not contain more than 15 transects for EB.
+
+RAW_SB_April2023 stems from the Master data - it contains 25 transects for SB. All the transects that are above transect SB25 need to be removed because the 2021 data does not contain more than 25 transects for SB.
+```{r}
+raw_EB <- read_excel("Ascidian Data/RAW_EB_April2023.xlsx")
+raw_SB <- read_excel("Ascidian Data/RAW_SB_April2023.xlsx")
+char <- read_excel("Benthic_cover.xlsx")
+```
+
+**Data cleaning**
+```{r}
+#EB
+# pivot the data frame to wide format
+raw_EB_wide <- raw_EB %>% 
+  group_by(Name, Label) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = Label, values_from = n, values_fill = 0)
+
+# rename Name = Image_ID
+# Pick out Transect_ID
+# Pick out PQ = photoquadrat
+# Extract TP, Transect_ID, and PQ from the Name column
+raw_EB_wide <- raw_EB_wide %>%
+  mutate(TP = "March_2023",
+         Site = str_extract(Name, "EB"),
+         Transect_ID = str_extract(Name, "EB\\d+"),
+         Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
+  select(Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+
+# remove all the EB transects that are above 15
+raw_EB_wide <- raw_EB_wide %>%
+  filter(as.numeric(str_extract(Transect_ID, "\\d+")) <= 15)
+
+#SB
+raw_SB_wide <- raw_SB %>% 
+  group_by(Name, Label) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = Label, values_from = n, values_fill = 0)
+
+# rename Name = Image_ID
+# Pick out Transect_ID
+# Pick out PQ = photoquadrat
+# Extract TP, Transect_ID, and PQ from the Name column
+raw_SB_wide <- raw_SB_wide %>%
+  mutate(TP = "March_2023",
+         Site = str_extract(Name, "SB"),
+         Transect_ID = str_extract(Name, "SB\\d+"),
+         Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
+  select(Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+
+# remove all the SB transects that are above 25
+raw_SB_wide <- raw_SB_wide %>%
+  filter(as.numeric(str_extract(Transect_ID, "\\d+")) <= 25)
+```
+
+Extract EB01-15 and SB01-25 from Charlotte's data from 2023 and the 3 CB transects
+!!! in the master data the formatting is EB1 and in Char's data the formatting is EB01
+```{r}
+char.2023 <- char[char$TP == "April_2023",]
+# rename the transect IDs for them to be unique (from the master data transect IDs)
+# CB can stay the same, just take the 0 out of the name
+char.2023 <- char.2023 %>%
+  mutate(Transect_ID = str_replace(Transect_ID, "CB0([1-3])", "CB\\1"))
+# EB16-21 (6 additional transects)
+# SB26-31 (6 additional transects)
+char.2023 <- char.2023 %>%
+  mutate(Transect_ID = case_when(
+    Transect_ID == "EB0" ~ "EB16",
+    Transect_ID == "EB02" ~ "EB17",
+    Transect_ID == "EB05" ~ "EB18",
+    Transect_ID == "EB06" ~ "EB19",
+    Transect_ID == "EB07" ~ "EB20",
+    Transect_ID == "EB11" ~ "EB21",
+    Transect_ID == "SB01" ~ "SB26",
+    Transect_ID == "SB02" ~ "SB27",
+    Transect_ID == "SB03" ~ "SB28",
+    Transect_ID == "SB04" ~ "SB29",
+    Transect_ID == "SB05" ~ "SB30",
+    Transect_ID == "SB06" ~ "SB31",
+    TRUE ~ Transect_ID
+  ))
+```
+
+
+Group everything into
+- Macroalgae
+- Turf
+- Cyanobacteria
+- Hard corals
+- Other
+- Ascidians
+```{r}
+# out EB and SB cleaned raw datasets together
+EB_SB_2023 <- rbind(raw_EB_wide, raw_SB_wide)
+
+#there's some NAs in data frame -> replace with 0 (those were not in labelset?)
+EB_SB_2023 <- EB_SB_2023 %>%
+  mutate(across(everything(), ~ifelse(is.na(.), 0, .)))
+
+# transpose data
+t.EB_SB_2023 <- EB_SB_2023 %>% pivot_longer(c(ABH:PLD), names_to = "Genera", values_to = "Cover")
+
+benthic.cats <- t.EB_SB_2023 %>%
+  mutate(Category = 
+           ifelse(Genera %in% c("ABB", "ABD", "ABH", "ABP", "ACBB", "ACDD", "ACH", "ACPP", "ANB", "AND", "ANH", "ANP", "GOB", "GOD", "GOH", "GOP", "MEB", "MEDD", "MEH", "MEP", "MPB", "MPD", "MPH","MPP", "OBBB", "OBD", "OBH", "OBP", "PLB", "PLD", "PLH", "PLP", "POB","POD","POH", "POP"), 
+                  "Hard coral",
+                  ifelse(Genera %in% c("M", "K", "F", "OG"),
+                         "Macroalgae",
+                         ifelse(Genera %in% "G",
+                                "Other benthic invertebrate",
+                                       ifelse(Genera %in% c("S", "BARK", "R", "Rubble"),
+                                              "Sand_sediment",
+                                                     ifelse(Genera %in% c("RT", "BT"),
+                                                            "Cyanobacteria",
+                                                                   ifelse(Genera %in% "ASCD",
+                                                                          "Ascidian",
+                                                                          ifelse(Genera %in% "NA",
+                                                                                 "All other", 
+                                                                                 ifelse(Genera %in% "T",
+                                                                                        "Turf",
+                                                                                        "Rest")))))))))
+
+# Group Char's data
+t.char.2023 <- char.2023 %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
+
+char.benthic.cats <- t.char.2023 %>%
+  mutate(Category = 
+    ifelse(Genera %in% c("Acanthastrea","Alveopora","Astrea","Euphyllia", "Paragoni","Pectinia","Platy", "Plesiastrea","Porites","Psammo","Cyphastrea","Homophyllia.sp.","Lobophyllia","Turbinaria","PoritPale","PortiPal", "Pocillopora","Styloph","Stylophora","B_Pocillo","B_Styloph","PPoc", "Acropora_br", "Acropora_pl","PACR_br","PAcr_tab", "Monti_encr","Monti_fol","B_Monti","B_MontiEnc","PEncr"),
+             "Hard coral",
+    ifelse(Genera %in% c("cyafil","Bryopsis","Chaeto","Chlor","MACR_Fil_A", "Turf", "TAS"),
+           "Turf",
+    ifelse(Genera %in% c("CYANO_DHC", "Cyanob"),
+           "Cyanobacteria",
+    ifelse(Genera %in% c("AL_fol","Dasy","Ulva", "AL_fleshy","Amansia","Asparago","CodFrag","Hyp","Laur","Mal","Sargassum", "Colpo","Hormo","Hydrocl","MACR_LTH_O","MLRP","Padina","Ploc","Valspp", "ampart","calc_macro","Halimeda","HALY","Tri_fra", "Rhodo","CCA", "Dictyopter","Dictyota", "Caulcupre","CauRac"),
+           "Macroalgae",
+    ifelse(Genera %in% c("SC","Anemone", "SP","Zoo","BInv","CalcInvert"), 
+             "Other benthic invertebrate",
+    ifelse(Genera %in% "ASCD", 
+             "Ascidian",
+    ifelse(Genera %in% c("Sand","Sediment", "D_coral", "Rubble"),
+           "Sand_sediment",
+           NA ))))))))
+
+unique(char.benthic.cats$Category) # where have the ascidians gone??
+
+```
+
+Sum counts per broad category per quadrat (Transect_no)
+```{r}
+# EB SB master data
+EB_SB_cats_cover_sum <- benthic.cats %>%
+  group_by(Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
+  summarize(sum_count = sum(Cover))
+
+# Char's data
+char_cats_cover_sum <- char.benthic.cats %>%
+  group_by(Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
+  summarize(sum_count = sum(Cover))
+```
+***Bring EB SB master data and Char's data together***
+```{r}
+# Transect_no in EB_SB_cats_cover_sum is character -> convert into numeric
+EB_SB_cats_cover_sum$Transect_no <- as.numeric(EB_SB_cats_cover_sum$Transect_no)
+full_2023 <- rbind(char_cats_cover_sum, EB_SB_cats_cover_sum)
+
+unique(full_2023$Transect_ID)
+```
+
+
+
+
