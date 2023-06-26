@@ -41,7 +41,7 @@ raw_EB_wide <- raw_EB %>%
 # Pick out PQ = photoquadrat
 # Extract TP, Transect_ID, and PQ from the Name column
 raw_EB_wide <- raw_EB_wide %>%
-  mutate(TP = "March_2023",
+  mutate(TP = "April_2023",
          Site = str_extract(Name, "EB"),
          Transect_ID = str_extract(Name, "EB\\d+"),
          Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
@@ -62,7 +62,7 @@ raw_SB_wide <- raw_SB %>%
 # Pick out PQ = photoquadrat
 # Extract TP, Transect_ID, and PQ from the Name column
 raw_SB_wide <- raw_SB_wide %>%
-  mutate(TP = "March_2023",
+  mutate(TP = "April_2023",
          Site = str_extract(Name, "SB"),
          Transect_ID = str_extract(Name, "SB\\d+"),
          Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
@@ -169,23 +169,76 @@ Sum counts per broad category per quadrat (Transect_no)
 ```{r}
 # EB SB master data
 EB_SB_cats_cover_sum <- benthic.cats %>%
-  group_by(Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
+  group_by(TP, Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
   summarize(sum_count = sum(Cover))
 
 # Char's data
 char_cats_cover_sum <- char.benthic.cats %>%
-  group_by(Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
+  group_by(TP, Site,Transect_ID,Transect_no,Category) %>% # no grouping by TP as it's given (2023) %>%
   summarize(sum_count = sum(Cover))
 ```
 ***Bring EB SB master data and Char's data together***
 ```{r}
 # Transect_no in EB_SB_cats_cover_sum is character -> convert into numeric
 EB_SB_cats_cover_sum$Transect_no <- as.numeric(EB_SB_cats_cover_sum$Transect_no)
+
 full_2023 <- rbind(char_cats_cover_sum, EB_SB_cats_cover_sum)
 
 unique(full_2023$Transect_ID)
 ```
 
+***Calculate TRANSECT mean cover***
+```{r}
+transect.percent.cover <- full_2023 %>%
+  group_by(TP, Site, Transect_ID, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+site.percent.cover <- full_2023 %>%
+  group_by(TP, Site, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>%
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+ggplot(transect.percent.cover, aes(x = Category, y = percent_cover, fill = Site)) +
+  geom_boxplot() +
+  stat_boxplot(geom="errorbar") +
+  labs(x = "Benthic category", y = "Cover (%)") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+# just the ascidians
+ascd.transect.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Ascidian",]
+ascd.site.percent.cover <- site.percent.cover[site.percent.cover$Category == "Ascidian",]
+
+ggplot(ascd.percent.cover, aes(x = Site, y = percent_cover, fill = Site)) +
+  geom_boxplot() +
+  stat_boxplot(geom="errorbar") +
+  labs(x = "Site", y = "Cover (%)")
+  theme_classic()
+  
+# dotplot with mean PER SITE and errorbars
+ggplot(ascd.site.percent.cover, aes(x = Site, y = percent_cover, colour = Site)) +
+  geom_point(position = position_dodge(.9), size = 2) +
+  geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
+                width = 0.4, size = 1, position = position_dodge(.9)) +
+  labs(x = "Site", y = "Cover (%)") +
+  ylim(0, max(ascd.site.percent.cover$percent_cover + ascd.site.percent.cover$SE)) +  # adjust ylim to include the error bars
+  theme_classic()
+```
+***Relative cover***
+- take out all hard coral substrate (and not sand)
+- for anything that isn't coral (or sand), what proportion is made up of ascidians
+- how much of 100% is ascidian cover
+- sum of ascidians divided by sum all other cover (including ascidians) minus hard coral and sand
+- are they making up more cover than algae in some places
+```{r}
+no.hard.coral <- full_2023[full_2023$Category != "Hard coral",]
+
+ascidian_df <- no.hard.coral %>%
+  group_by(TP, Site, Transect_ID) %>%
+  filter(Category == "Ascidian") %>%
+  select(TP, Site, Transect_ID, ascidian_count = sum_count)
+
+```
 
 
 
