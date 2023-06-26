@@ -212,7 +212,7 @@ ascd.site.percent.cover <- site.percent.cover[site.percent.cover$Category == "As
 ggplot(ascd.percent.cover, aes(x = Site, y = percent_cover, fill = Site)) +
   geom_boxplot() +
   stat_boxplot(geom="errorbar") +
-  labs(x = "Site", y = "Cover (%)")
+  labs(x = "Site", y = "Cover (%)") +
   theme_classic()
   
 # dotplot with mean PER SITE and errorbars
@@ -233,10 +233,30 @@ ggplot(ascd.site.percent.cover, aes(x = Site, y = percent_cover, colour = Site))
 ```{r}
 no.hard.coral <- full_2023[full_2023$Category != "Hard coral",]
 
+# get a df with just the ascidian count PER transect -> so 1 count for each transect
 ascidian_df <- no.hard.coral %>%
   group_by(TP, Site, Transect_ID) %>%
   filter(Category == "Ascidian") %>%
-  select(TP, Site, Transect_ID, ascidian_count = sum_count)
+  summarize(ascidian.count = sum(sum_count))
+
+everything_df <- no.hard.coral %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(everything.count = sum(sum_count))
+
+# bind together
+rel.cover <- left_join(ascidian_df, everything_df)
+
+# calculate relative cover of ascidians
+rel.cover <- rel.cover %>%
+  group_by(TP, Site, Transect_ID) %>%
+  summarize(rel_cover = (ascidian.count/everything.count)*100)
+
+# plot relative cover
+ggplot(rel.cover, aes(x = Site, y = rel_cover, fill = Site)) +
+  geom_boxplot() +
+  stat_boxplot(geom = "errorbar") +
+  labs(x = "Site", y = "Relative Cover (%)") +
+  theme_classic()
 
 ```
 
