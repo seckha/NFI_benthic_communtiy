@@ -12,8 +12,9 @@ library(readxl)
 ```
 
 ```{r}
-benthic.data <- read_excel("Benthic_cover.xlsx")
+benthic.data <- read_excel("Benthic_cover.xlsx") # Charlotte's data with CB sites that I will use
 ascidians.full <- benthic.data[, c("Image ID", "Image name", "TP", "Site", "Transect_ID", "Transect_no", "ASCD")]
+master <- read_excel("master_data_updated_april_2023.xlsx") # Masterdata with all the replicated transects
 ```
 
 Extract April 2023 and 2021 data (2023 - 3 years after bleaching, 2021 - 1 year after bleaching)
@@ -26,6 +27,47 @@ sum(benthic.data.2023$ASCD) # 69 ASCD recorded in 2023
 t.benthic.data.2023 <- benthic.data.2023 %>% pivot_longer(c(Acanthastrea:Valspp), names_to = "Genera", values_to = "Cover")
 
 ```
+
+Extract April 2023 from Master to re-analyze EB and SB transects
+In March 2021 there are these transects:
+- EB1 - EB15
+- SB1 - SB25
+These transects and the photos therein will be re-analyzed in April 2023 to pick out the ascidians.
+Therefore, EB will have 15 replicates, and SB will have 25 replicates in each year.
+For CB, I will take the CB 2021 & 2023 (3 transects each) from Charlotte's data
+```{r}
+unique(master$TP)
+april2023 <- master[master$TP == "April_2023", ]
+
+t.april2023 <- april2023 %>% pivot_longer(c(`Acanthastrea Bleached`:Black_turf), names_to = "Genera", values_to = "Cover")
+
+# How many quadrats (PQ) contain values > 0 for "All other"
+filtered_quadrats <- t.april2023 %>%
+  group_by(Transect_ID, PQ, Genera) %>%
+  filter(Genera == "All other", Cover > 0) # 249 quadrats have "all other" annotations
+
+length(unique(filtered_quadrats$Transect_ID)) # 71 transects have all other" annotations
+
+
+# remove CEM
+filtered_quadrats_noCEM <- filtered_quadrats[!grepl("CEM_", filtered_quadrats$Transect_ID), ] # western slaughter still included, but am not re-analyzing these pictures
+```
+There are a few quadrats in EB and SB that contain "all other" annotations. These quadrats will be re-analyzed and "all other" will be reclassified to find any ascidians. In the master dataset, these images are titled with "March", e.g. *March_2023EB13_1.JPG*
+
+Afterwards, the data for April 2023 will be exported into an excel file and data analysis will be done on the transects EB1-15 and SB1-25. The same thing will later be done for March 2021, however the quadrats containing the ascidians will be different.
+
+
+
+
+
+
+
+
+
+
+
+
+
 ***Absence/presence in transects***
 Presence/absence table of ascidians
 ```{r}
