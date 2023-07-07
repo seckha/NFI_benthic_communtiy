@@ -209,7 +209,7 @@ ggplot(transect.percent.cover, aes(x = Category, y = percent_cover, fill = Site)
 ascd.transect.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Ascidian",]
 ascd.site.percent.cover <- site.percent.cover[site.percent.cover$Category == "Ascidian",]
 
-ggplot(ascd.percent.cover, aes(x = Site, y = percent_cover, fill = Site)) +
+ggplot(ascd.transect.percent.cover, aes(x = Site, y = percent_cover, fill = Site)) +
   geom_boxplot() +
   stat_boxplot(geom="errorbar") +
   labs(x = "Site", y = "Cover (%)") +
@@ -247,15 +247,28 @@ everything_df <- no.hard.coral %>%
 rel.cover <- left_join(ascidian_df, everything_df)
 
 # calculate relative cover of ascidians
-rel.cover <- rel.cover %>%
+rel.cover.transect <- rel.cover %>%
   group_by(TP, Site, Transect_ID) %>%
   summarize(rel_cover = (ascidian.count/everything.count)*100)
+  
+rel.cover.site <- rel.cover %>%
+  group_by(TP,Site) %>%
+  summarize(rel_cover = (ascidian.count/everything.count)*100) %>%
+  mutate(SE = sd(rel_cover) / sqrt(n()))
 
 # plot relative cover
-ggplot(rel.cover, aes(x = Site, y = rel_cover, fill = Site)) +
+ggplot(rel.cover.transect, aes(x = Site, y = rel_cover, fill = Site)) +
   geom_boxplot() +
   stat_boxplot(geom = "errorbar") +
   labs(x = "Site", y = "Relative Cover (%)") +
+  theme_classic()
+
+ggplot(rel.cover.site, aes(x = Site, y = rel_cover, colour = Site)) +
+  geom_point(position = position_dodge(.9), size = 2) +
+  geom_errorbar(aes(ymin = rel_cover - SE, ymax = rel_cover + SE),
+                width = 0.4, size = 1, position = position_dodge(.9)) +
+  labs(x = "Site", y = "Cover (%)") +
+  ylim(0, max(rel.cover.site$rel_cover + rel.cover.site$SE)) +  # adjust ylim to include the error bars
   theme_classic()
 
 ```

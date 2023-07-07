@@ -49,64 +49,10 @@ TropBeger <- ecoregions_geoJSON$features[c(3, 5, 9, 10, 11, 14, 15, 20, 21, 22,
 
 TropSub <- ecoregions_geoJSON$features[191]
 
-MapLon <- c(-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150)
-MapLat <- c(-90, -60, -30, 0, 30, 60, 90)
-
-Lat150 <- c(-180, 180)
-Lon150 <- c(-150, -150)
-
-
-CoorLat <- c("80\u00B0S", "60\u00B0S", "40\u00B0S", "20\u00B0S", "0\u00B0", "20\u00B0N", "40\u00B0N", "60\u00B0N", "80\u00B0N")
-
-EqLon <- c(-180, 180)
-EqLat <- c(0, 0)
-
-#LabelLon <- c(64.4)
-#LabelLat <- c(-22.19)
-#Location <- c("Iceland")
-LocDat <- read.csv(file = 'MapDataLongLat.csv')
-head(LocDat)
-
-LocPop <- c(LocDat$ecoregion, LocDat$country, LocDat$location)
-
-#vectorLabel <- data.frame(Location, LabelLon, LabelLat)
-
-brewer.pal(n=5, "Set2")
-
-?addGeoJSON
-
-leaflet(option=leafletOptions(zoomControl=FALSE)) %>%
-# Can't figure out how this line of code actually work, if you use other format of maps it would cause all the
-# regions to shift all over the place, so leave it suppressed for now.
-  # leaflet(option=leafletOptions(zoomControl=FALSE, crs = leafletCRS(crsClass = "L.CRS.EPSG4326"))) %>%
-  addGraticule(interval = 20, sphere = FALSE) %>% # black longitude and latitude lines
-  #addPolylines(lng = EqLon, lat = EqLat, color = "#C70039") %>% # equator line
-  # This line of code would change the style of the map (aesthetically)
-  # addProviderTiles("Thunderforest.SpinalMap") %>%
-  addProviderTiles(provider = "Esri.WorldGrayCanvas",
-                   options = providerTileOptions(noWrap = TRUE)) %>%
-  addGeoJSON(geojson = ArcBeger, color = "#8DA0CB", fillOpacity = 1)%>%
-  addGeoJSON(geojson = TempBeger, color = "#66C2A5", fillOpacity = 1)%>% # #3368FF
-  addGeoJSON(geojson = SubTBeger, color = "#FC8D62", fillOpacity = 1)%>%
-  addGeoJSON(geojson = TropBeger, color = "#E78AC3", fillOpacity = 1)%>%
-  addGeoJSON(geojson = TropSub, color = "#A6D854", fillOpacity = 1) #%>%
-  #addLabelOnlyMarkers(lng = MapLon, lat = MapLat, label = CoorLat,
-  #                    labelOptions = labelOptions(noHide = T, direction = 'top', textOnly = T))%>%
-  # Suppress this following line if you don't want the bubbles, also remove the %>% from the previous line
-  #addMarkers(data = LocDat, LocDat$long, LocDat$lat, popup = paste("Ecoregion: ", LocDat$ecoregion, "<br>",
-  #                                                                  "Country: ", LocDat$country, "<br>",
-  #                                                                  "Location: ", LocDat$location, "<br>",
-  #                                                                 "Longitude: ", LocDat$longDir, "<br>",
-  #                                                                 "Latitude: ", LocDat$latDir, "<br>"))
-
-
-?addGeoJSON
-
-
 leaflet(option=leafletOptions(zoomControl=FALSE)) %>%
   addProviderTiles(provider = "Esri.WorldGrayCanvas",
                    options = providerTileOptions(noWrap = TRUE)) %>%
-  addGraticule(interval = 30, sphere = T) %>%
+  #addGraticule(interval = 30, sphere = T) %>%
   addGeoJSON(geojson = ArcBeger, color = "#8DA0CB", fillOpacity = 1)%>%
   addGeoJSON(geojson = TempBeger, color = "#66C2A5", fillOpacity = 1)%>%
   addGeoJSON(geojson = SubTBeger, color = "#FC8D62", fillOpacity = 1)%>%
@@ -123,56 +69,53 @@ leaflet(option=leafletOptions(zoomControl=FALSE)) %>%
       backgroundColor = "white",
       opacity = 1))
 
-?addGraticule
 
-
-
-m <- leaflet(option=leafletOptions(zoomControl=FALSE),
+# with grey lon & lat lines
+leaflet(option=leafletOptions(zoomControl=FALSE),
         # most common CRS for online maps, uses spherical mercator projection
         leafletCRS(crsClass = "L.CRS.EPSG3857")) %>%
-  addProviderTiles(provider = "OpenStreetMap",
+  addProviderTiles(provider = "Esri.WorldGreyCanvas",
                    options = providerTileOptions(noWrap = TRUE)) %>%
-  
+
   addGeoJSON(geojson = ArcBeger, color = "#8DA0CB", fillOpacity = 1)%>%
   addGeoJSON(geojson = TempBeger, color = "#66C2A5", fillOpacity = 1)%>%
   addGeoJSON(geojson = SubTBeger, color = "#FC8D62", fillOpacity = 1)%>%
   addGeoJSON(geojson = TropBeger, color = "#E78AC3", fillOpacity = 1)%>%
   addGeoJSON(geojson = TropSub, color = "#A6D854", fillOpacity = 1) %>%
   # longitude lines
-  addPolylines(lng = c(-150, -150), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-120, -120), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-90, -90), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-60, -60), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-30, -30), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(0, 0), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(30, 30), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(60, 60), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(90, 90), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(120, 120), lat = c(-180, 180), color = "black", weight = 2) %>%
-  addPolylines(lng = c(150,150), lat = c(-180, 180), color = "black", weight = 2) %>%
+  addPolylines(lng = c(-150, -150), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-120, -120), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-90, -90), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-60, -60), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-30, -30), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(0, 0), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(30, 30), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(60, 60), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(90, 90), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(120, 120), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(150,150), lat = c(-180, 180), color = "lightgrey", weight = 2) %>%
   # latitude lines
-  addPolylines(lng = c(-180, 180), lat = c(-90, -90), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(-60, -60), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(-30, -30), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(0, 0), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(30, 30), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(60, 60), color = "black", weight = 2) %>%
-  addPolylines(lng = c(-180, 180), lat = c(90, 90), color = "black", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(-90, -90), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(-60, -60), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(-30, -30), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(0, 0), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(30, 30), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(60, 60), color = "lightgrey", weight = 2) %>%
+  addPolylines(lng = c(-180, 180), lat = c(90, 90), color = "lightgrey", weight = 2) #%>%
   # add legend at bottom of map, horizontally
-  addControl(
-    html = '<div style="background-color: white; opacity: 1; padding: 10px; border-radius: 5px;">
-            <table>
-              <tr>
-                <td><span style="background-color: #8DA0CB; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>ArcBeger</td>
-                <td><span style="background-color: #66C2A5; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TempBeger</td>
-                <td><span style="background-color: #FC8D62; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>SubTBeger</td>
-                <td><span style="background-color: #E78AC3; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TropBeger</td>
-                <td><span style="background-color: #A6D854; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TropSub</td>
-              </tr>
-            </table>
-          </div>',
-    position = "bottomleft"
-  )
+  # addControl(
+  #   html = '<div style="background-color: white; opacity: 1; padding: 10px; border-radius: 5px;">
+  #           <table>
+  #             <tr>
+  #               <td><span style="background-color: #8DA0CB; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>ArcBeger</td>
+  #               <td><span style="background-color: #66C2A5; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TempBeger</td>
+  #               <td><span style="background-color: #FC8D62; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>SubTBeger</td>
+  #               <td><span style="background-color: #E78AC3; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TropBeger</td>
+  #               <td><span style="background-color: #A6D854; width: 15px; height: 15px; display: inline-block; margin-right: 5px;"></span>TropSub</td>
+  #             </tr>
+  #           </table>
+  #         </div>',
+  #   position = "bottomleft")
 
 #does not work
 #mapshot(m, file = paste0(getwd(), "/ecoregionsmap.png"),

@@ -125,7 +125,7 @@ str(site.percent.cover)
 ggplot(site.percent.cover, aes(x = TP, y = percent_cover, colour = Site)) +
   geom_point(position=position_dodge(.9)) +
   geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
-                width = 0.4, size = 0.7,
+                width = 0.4, size = 3,
                  position=position_dodge(.9)) +
   labs(x = "Time Points", y = "Cover (%)") +
   scale_fill_discrete(name = "Site") +
