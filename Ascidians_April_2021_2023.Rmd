@@ -15,7 +15,7 @@ library(dplyr)
 library(stringr)
 ```
 
-***2023***
+***2021 and 2023***
 **Import data**
 
 RAW_EB_April2023 stems from the Master data - it contains over 15 transects for EB. All the transects that are above transect EB15 need to be removed because the 2021 data does not contain more than 15 transects for EB.
@@ -25,9 +25,13 @@ RAW_SB_April2023 stems from the Master data - it contains 25 transects for SB. A
 raw_EB <- read_excel("Ascidian Data/RAW_EB_April2023.xlsx")
 raw_SB <- read_excel("Ascidian Data/RAW_SB_April2023.xlsx")
 char <- read_excel("Benthic_cover.xlsx")
+raw_2021 <- read_excel("Ascidian Data/RAW_EB_SB_CB_March2021.xlsx") 
+  # contains 15 transects EB
+  # contains 25 transects SB
+  # contains 3 transects CB
 ```
 
-**Data cleaning**
+**Data cleaning April 2023**
 ```{r}
 #EB
 # pivot the data frame to wide format
@@ -41,17 +45,17 @@ raw_EB_wide <- raw_EB %>%
 # Pick out PQ = photoquadrat
 # Extract TP, Transect_ID, and PQ from the Name column
 raw_EB_wide <- raw_EB_wide %>%
-  mutate(TP = "April_2023",
+  mutate(TP = "April 2023",
          Site = str_extract(Name, "EB"),
          Transect_ID = str_extract(Name, "EB\\d+"),
          Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
-  select(Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+  select(Image_ID = Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
 
 # remove all the EB transects that are above 15
 raw_EB_wide <- raw_EB_wide %>%
   filter(as.numeric(str_extract(Transect_ID, "\\d+")) <= 15)
 
-#SB
+#SB 
 raw_SB_wide <- raw_SB %>% 
   group_by(Name, Label) %>% 
   summarise(n = n()) %>% 
@@ -62,17 +66,19 @@ raw_SB_wide <- raw_SB %>%
 # Pick out PQ = photoquadrat
 # Extract TP, Transect_ID, and PQ from the Name column
 raw_SB_wide <- raw_SB_wide %>%
-  mutate(TP = "April_2023",
+  mutate(TP = "April 2023",
          Site = str_extract(Name, "SB"),
          Transect_ID = str_extract(Name, "SB\\d+"),
          Transect_no = str_extract(Name, "\\d+(?=\\.JPG$)")) %>%
-  select(Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+  select(Image_ID = Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
 
 # remove all the SB transects that are above 25
 raw_SB_wide <- raw_SB_wide %>%
   filter(as.numeric(str_extract(Transect_ID, "\\d+")) <= 25)
 ```
 
+
+For April 2023 (because it does not contain CB transects)
 Extract EB01-15 and SB01-25 from Charlotte's data from 2023 and the 3 CB transects
 !!! in the master data the formatting is EB1 and in Char's data the formatting is EB01
 ```{r}
@@ -84,23 +90,28 @@ char.2023 <- char.2023 %>%
 # EB16-21 (6 additional transects)
 # SB26-31 (6 additional transects)
 char.2023 <- char.2023 %>%
-  mutate(Transect_ID = case_when(
-    Transect_ID == "EB0" ~ "EB16",
-    Transect_ID == "EB02" ~ "EB17",
-    Transect_ID == "EB05" ~ "EB18",
-    Transect_ID == "EB06" ~ "EB19",
-    Transect_ID == "EB07" ~ "EB20",
-    Transect_ID == "EB11" ~ "EB21",
-    Transect_ID == "SB01" ~ "SB26",
-    Transect_ID == "SB02" ~ "SB27",
-    Transect_ID == "SB03" ~ "SB28",
-    Transect_ID == "SB04" ~ "SB29",
-    Transect_ID == "SB05" ~ "SB30",
-    Transect_ID == "SB06" ~ "SB31",
-    TRUE ~ Transect_ID
-  ))
+  mutate(
+    TP = case_when(
+      TP == "April_2023" ~ "April 2023",
+      TRUE ~ TP
+    ),
+    Transect_ID = case_when(
+      Transect_ID == "EB0" ~ "EB16",
+      Transect_ID == "EB02" ~ "EB17",
+      Transect_ID == "EB05" ~ "EB18",
+      Transect_ID == "EB06" ~ "EB19",
+      Transect_ID == "EB07" ~ "EB20",
+      Transect_ID == "EB11" ~ "EB21",
+      Transect_ID == "SB01" ~ "SB26",
+      Transect_ID == "SB02" ~ "SB27",
+      Transect_ID == "SB03" ~ "SB28",
+      Transect_ID == "SB04" ~ "SB29",
+      Transect_ID == "SB05" ~ "SB30",
+      Transect_ID == "SB06" ~ "SB31",
+      TRUE ~ Transect_ID
+    )
+  )
 ```
-
 
 Group everything into
 - Macroalgae
@@ -160,9 +171,6 @@ char.benthic.cats <- t.char.2023 %>%
     ifelse(Genera %in% c("Sand","Sediment", "D_coral", "Rubble"),
            "Sand_sediment",
            NA ))))))))
-
-unique(char.benthic.cats$Category) # where have the ascidians gone??
-
 ```
 
 Sum counts per broad category per quadrat (Transect_no)
@@ -186,6 +194,84 @@ full_2023 <- rbind(char_cats_cover_sum, EB_SB_cats_cover_sum)
 
 unique(full_2023$Transect_ID)
 ```
+# full_2023 will be merged with full_2021 once data is cleaned and categorized#
+
+***Data cleaning March 2021***
+```{r}
+# pivot data to wide format
+raw_2021_wide <- raw_2021 %>% 
+  group_by(Name, Label) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = Label, values_from = n, values_fill = 0)
+
+# rename Name = Image_ID
+# Pick out Transect_ID
+# Pick out PQ = photoquadrat
+# Extract TP, Transect_ID, and PQ from the Name column
+raw_2021_wide <- raw_2021_wide %>%
+  mutate(TP = "March 2021",
+         Site = str_extract(Name, "[A-Z]{2}"),
+         Transect_ID = str_extract(Name, "[A-Z]{2}\\d+(?=_)"),
+         Transect_no = str_extract(Name, "\\d+(?=\\.jpg)")) %>%
+  select(Image_ID = Name, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+```
+
+**Charlotte 2021**
+Extract EB01-15 and SB01-25 from Charlotte's data from 2023 (only 6 transects EB and 6 transects SB)
+DO NOT extract CB transects as there is already 3 CB transects in Master 2021 data
+!!! in the master data the formatting is EB1 and in Char's data the formatting is EB01
+```{r}
+char.2021 <- char[char$TP == "April_2021",]
+# rename the transect IDs for them to be unique (from the master data transect IDs)
+# EB16-21 (6 additional transects)
+# SB26-31 (6 additional transects)
+# also rename April_2021 to March 2021
+char.2021 <- char.2021 %>%
+  mutate(
+    TP = case_when(
+      TP == "April_2021" ~ "March 2021",
+      TRUE ~ TP
+    ),
+    Transect_ID = case_when(
+      Transect_ID == "EB0" ~ "EB16",
+      Transect_ID == "EB02" ~ "EB17",
+      Transect_ID == "EB05" ~ "EB18",
+      Transect_ID == "EB06" ~ "EB19",
+      Transect_ID == "EB07" ~ "EB20",
+      Transect_ID == "EB11" ~ "EB21",
+      Transect_ID == "SB01" ~ "SB26",
+      Transect_ID == "SB02" ~ "SB27",
+      Transect_ID == "SB03" ~ "SB28",
+      Transect_ID == "SB04" ~ "SB29",
+      Transect_ID == "SB05" ~ "SB30",
+      Transect_ID == "SB06" ~ "SB31",
+      TRUE ~ Transect_ID
+    )
+  )
+
+unique(char.2021$Transect_ID) # 6 transect for each EB and SB
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ***Calculate TRANSECT mean cover***
 ```{r}
