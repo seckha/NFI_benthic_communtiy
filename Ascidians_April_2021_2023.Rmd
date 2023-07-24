@@ -348,15 +348,10 @@ full_2021 <- full_2021 %>%
   filter(!(Transect_ID %in% c("CB4", "CB5"))) # also remove transects CB4 and CB5 because those are not in 2023
 ```
 
-
-
-
-
-
-
-
-
-
+**Merge April 2023 and March 2021 Data**
+```{r}
+full_data <- rbind(full_2021, full_2023)
+```
 
 
 
@@ -368,12 +363,12 @@ full_2021 <- full_2021 %>%
 
 ***Calculate TRANSECT mean cover***
 ```{r}
-transect.percent.cover <- full_2023 %>%
+transect.percent.cover <- full_data %>%
   group_by(TP, Site, Transect_ID, Category) %>%
   summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
   mutate(SE = sd(percent_cover) / sqrt(n()))
 
-site.percent.cover <- full_2023 %>%
+site.percent.cover <- full_data %>%
   group_by(TP, Site, Category) %>%
   summarize(percent_cover = mean(sum_count)) %>%
   mutate(SE = sd(percent_cover) / sqrt(n()))
@@ -388,21 +383,100 @@ ggplot(transect.percent.cover, aes(x = Category, y = percent_cover, fill = Site)
 ascd.transect.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Ascidian",]
 ascd.site.percent.cover <- site.percent.cover[site.percent.cover$Category == "Ascidian",]
 
-ggplot(ascd.transect.percent.cover, aes(x = Site, y = percent_cover, fill = Site)) +
+# relevel TPs, so March is first in plot
+ascd.transect.percent.cover$TP <- factor(ascd.transect.percent.cover$TP, levels = c("March 2021", "April 2023"))
+ascd.site.percent.cover$TP <- factor(ascd.site.percent.cover$TP, levels = c("March 2021", "April 2023"))
+
+
+
+# pick site colors that match map in manuscript methods
+site_colors <- c("CB" = "#FE7F9C", "EB" = "#EC9706", "SB" = "#52B2BF")
+
+boxplot <- ggplot(ascd.transect.percent.cover, aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot() +
-  stat_boxplot(geom="errorbar") +
-  labs(x = "Site", y = "Cover (%)") +
-  theme_classic()
-  
+  stat_boxplot(geom = "errorbar") +
+  labs(x = "Time point", y = "Cover (%)") +
+  scale_fill_manual(values = site_colors) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    legend.position = "bottom",  # Set legend position to bottom
+    legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(1.2, "cm"))  # Adjust the size of the legend key
+
+ggsave(filename = "Plots/boxplot_ascd_TPs.jpg", plot = boxplot, width = 10, height = 7, dpi = 300)
+
+
 # dotplot with mean PER SITE and errorbars
-ggplot(ascd.site.percent.cover, aes(x = Site, y = percent_cover, colour = Site)) +
-  geom_point(position = position_dodge(.9), size = 2) +
+dotplot <- ggplot(ascd.site.percent.cover, aes(x = TP, y = percent_cover, colour = Site)) +
+  geom_point(position = position_dodge(.9), size = 3) +
   geom_errorbar(aes(ymin = percent_cover - SE, ymax = percent_cover + SE),
                 width = 0.4, size = 1, position = position_dodge(.9)) +
   labs(x = "Site", y = "Cover (%)") +
   ylim(0, max(ascd.site.percent.cover$percent_cover + ascd.site.percent.cover$SE)) +  # adjust ylim to include the error bars
-  theme_classic()
+  scale_color_manual(values = site_colors) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    legend.position = "bottom",  # Set legend position to bottom
+    legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(1.5, "cm"))  # Adjust the size of the legend key
+
+ggsave(filename = "Plots/dotplot_ascd_TPs.jpg", plot = dotplot, width = 10, height = 7, dpi = 300)
+
 ```
+
+
+**FOC**
+```{r}
+# 2021
+
+# filter by each site and transect ID
+# get number of how many transects there are where there is at least 1 ascidian (sum_count)
+# filter only rows where Category is "Ascidian"
+ascidian_data_2021 <- full_2021 %>%
+  filter(Category == "Ascidian" & sum_count > 0)
+
+# group by Site and count the number of unique Transect_IDs with sum_count of Ascidian greater than 1
+transects_per_site_with_ascidian_2021 <- ascidian_data_2021 %>%
+  group_by(Site) %>%
+  summarise(Num_Transects_with_Ascidian = n_distinct(Transect_ID))
+
+
+# 2023
+ascidian_data_2023 <- full_2023 %>%
+  filter(Category == "Ascidian" & sum_count > 0)
+
+# group by Site and count the number of unique Transect_IDs with sum_count of Ascidian greater than 1
+transects_per_site_with_ascidian_2023 <- ascidian_data_2023 %>%
+  group_by(Site) %>%
+  summarise(Num_Transects_with_Ascidian = n_distinct(Transect_ID))
+
+unique(full_2021$Transect_ID)
+
+
+```
+
+
+
+
+
+
+
+
+
 ***Relative cover***
 - take out all hard coral substrate (and not sand)
 - for anything that isn't coral (or sand), what proportion is made up of ascidians
@@ -410,7 +484,7 @@ ggplot(ascd.site.percent.cover, aes(x = Site, y = percent_cover, colour = Site))
 - sum of ascidians divided by sum all other cover (including ascidians) minus hard coral and sand
 - are they making up more cover than algae in some places
 ```{r}
-no.hard.coral <- full_2023[full_2023$Category != "Hard coral",]
+no.hard.coral <- full_data[full_data$Category != "Hard coral",]
 
 # get a df with just the ascidian count PER transect -> so 1 count for each transect
 ascidian_df <- no.hard.coral %>%
@@ -436,11 +510,23 @@ rel.cover.site <- rel.cover %>%
   mutate(SE = sd(rel_cover) / sqrt(n()))
 
 # plot relative cover
-ggplot(rel.cover.transect, aes(x = Site, y = rel_cover, fill = Site)) +
+ggplot(rel.cover.transect, aes(x = TP, y = rel_cover, fill = Site)) +
   geom_boxplot() +
   stat_boxplot(geom = "errorbar") +
-  labs(x = "Site", y = "Relative Cover (%)") +
-  theme_classic()
+  labs(x = "Time point", y = "Relative Cover (%)") +
+  scale_fill_manual(values = site_colors) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18),  
+    legend.text = element_text(size = 16), 
+    legend.title = element_text(size = 18),  
+    legend.position = "bottom",  
+    legend.justification = "center",
+    legend.key.size = unit(1.5, "cm")) 
 
 ggplot(rel.cover.site, aes(x = Site, y = rel_cover, colour = Site)) +
   geom_point(position = position_dodge(.9), size = 2) +
