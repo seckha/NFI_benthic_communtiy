@@ -1,0 +1,305 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# IMPORT LIBRARIES
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(readxl)
+library(openxlsx)
+```
+
+
+# IMPORT ALL DATA
+```{r}
+full_data <- read_excel("Ascidian Data/FULL_March2021_April2023.xlsx")
+```
+
+# TRANSECT MEAN COVER
+```{r}
+transect.percent.cover <- full_data %>%
+  group_by(TP, Site, Transect_ID, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+site.percent.cover <- full_data %>%
+  group_by(TP, Site, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+tp.percent.cover <- full_data %>%
+  group_by(Site, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+
+write.xlsx(site.percent.cover, file = "Ascidian Data/Site_percent_cover_SE.xlsx")
+write.xlsx(tp.percent.cover, file = "Ascidian Data/TP_percent_cover_SE.xlsx")
+
+```
+# EXTRACT ASCIDIAN DATA
+```{r}
+# just the ascidians
+ascd.transect.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Ascidians",]
+
+
+# one df per site
+SB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site == "SB",]
+EB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site == "EB",]
+CB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site == "CB",]
+
+
+# relevel sites, SB, EB, CB
+#ascd.transect.percent.cover$Site <- factor(ascd.transect.percent.cover$Site, levels = c("SB", "EB", "CB"))
+```
+
+# COVER PER SITE
+```{r}
+# pick site colors that match map in manuscript methods
+site_colors <- c("CB" = "#FE7F9C", "EB" = "#EC9706", "SB" = "#52B2BF")
+
+# SB: one outlier in 2023:
+  # SB12 -> percent cover of 4.9%
+  # removing from plot and then mention in figure legend "outlier in 2023 was removed with a value of 4.9%
+SB_ascd_cover <- subset(SB_ascd_cover, Transect_ID != "SB12")
+
+SBcover <- ggplot(SB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot(width = 0.3) +
+  #stat_boxplot(geom = "errorbar", width = 0.3) +
+  labs(x = "Time point", y = "Cover (%)") +
+  scale_fill_manual(values = site_colors) +
+  theme_classic() +
+  ylim(0,1) +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    legend.position = "bottom",  # Set legend position to bottom
+    legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(1.2, "cm"))  # Adjust the size of the legend key
+
+EBcover <- ggplot(EB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot(width = 0.3) +
+  #stat_boxplot(geom = "errorbar", width = 0.3) +
+  labs(x = "Time point", y = "Cover (%)") +
+  scale_fill_manual(values = site_colors) +
+  theme_classic() +
+  ylim(0,1) +
+  theme(
+    text = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size =18),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18),
+    legend.position = "bottom",
+    legend.justification = "center",
+    legend.key.size = unit(1.2, "cm"))
+
+CBcover <- ggplot(CB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
+  geom_boxplot(width = 0.3) +
+  #stat_boxplot(geom = "errorbar", width = 0.3) +
+  labs(x = "Time point", y = "Cover (%)") +
+  scale_fill_manual(values = site_colors) +
+  theme_classic() +
+  ylim(0,5) +
+  theme(
+    text = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size =18),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18),
+    legend.position = "bottom",
+    legend.justification = "center",
+    legend.key.size = unit(1.2, "cm"))
+
+ggsave(filename = "Plots/SB_ascd_cover.jpg", plot = SBcover, width = 5, height = 5, dpi = 300)
+ggsave(filename = "Plots/EB_ascd_cover.jpg", plot = EBcover, width = 5, height = 5, dpi = 300)
+ggsave(filename = "Plots/CB_ascd_cover.jpg", plot = CBcover, width = 5, height = 5, dpi = 300) # CB plot remains unchanged with the NEW adjusted/newly annotated 2021 data
+```
+
+# MEAN COVER ALL CATEGORIES
+```{r}
+CB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "CB",]
+SB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "SB",]
+EB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "EB",]
+
+library(RColorBrewer)
+CB.cat.cov <- ggplot(CB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "Plots/CB_category_cover.jpg", plot = CB.cat.cov, width = 7, height = 5, dpi = 300)
+
+SB.cat.cov <- ggplot(SB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "Plots/SB_category_cover.jpg", plot = SB.cat.cov, width = 7, height = 5, dpi = 300)
+
+EB.cat.cov <- ggplot(EB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+  #guides(fill = guide_legend(nrow = 5))  # Split the legend into 2 rows
+
+ggsave(filename = "Plots/EB_category_cover.jpg", plot = EB.cat.cov, width = 7, height = 5, dpi = 300)
+
+
+```
+
+# MEAN COVER PER SITE OVER BOTH TIME POINTS
+```{r}
+CB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "CB",]
+SB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "SB",]
+EB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "EB",]
+
+CB.tp.cov <- ggplot(CB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+  #guides(fill = guide_legend(nrow = 4))  # Split the legend into 2 rows
+
+SB.tp.cov <- ggplot(SB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16), 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18), 
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18), 
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+EB.tp.cov <- ggplot(EB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16), 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18), 
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18), 
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "Plots/CB_site_cover.jpg", plot = CB.tp.cov, width = 6, height = 5, dpi = 300)
+ggsave(filename = "Plots/SB_site_cover.jpg", plot = SB.tp.cov, width = 6, height = 5, dpi = 300)
+ggsave(filename = "Plots/EB_site_cover.jpg", plot = EB.tp.cov, width = 6, height = 5, dpi = 300)
+
+```
+
+
+# STATISTICS
+```{r}
+ascd.transect.percent.cover.stats <-ascd.transect.percent.cover %>% 
+  mutate(log_percent_cover = log(percent_cover+1))
+
+m1 <- lm(log_percent_cover ~ Site * TP, data = ascd.transect.percent.cover.stats)
+plot(m1)
+anova(m1)
+summary(m1)
+  # significant effect of interaction term p < 0.01
+  # from summary plot, get R squared, nothing more
+
+# post hoc testing
+library(emmeans)
+
+posthoc <- lsmeans(m1, pairwise ~ Site * TP, adjust = "Tukey") # mention that it was adjusted using tukey-ascombe?
+# no changes in SB and EB over time
+# increases in CB, levels in CB higher than EB and SB - what TP come out as higher or lower
+
+lsmeans_df <- data.frame(posthoc$contrasts)
+write.xlsx(lsmeans_df, file = "Ascidian Data/lsmeans_results.xlsx", rowNames = FALSE)
+
+
+```
+
+
+
+
+
+
+
