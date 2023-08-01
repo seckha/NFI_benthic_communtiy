@@ -394,6 +394,10 @@ SUB <- ggplot(substrate, aes(x = Site, y = percentage, fill = Substrate)) +
     legend.key.size = unit(0.7, "cm"))
 
 ggsave(filename = "Plots/Substrate_1TP.jpg", plot = SUB, width = 6, height = 5, dpi = 300)
+write.xlsx(substrate, file = "Ascidian Data/Substrate_results.xlsx", rowNames = FALSE)
+
+
+# overall substrate numbers
 
 ```
 
@@ -437,93 +441,42 @@ INT <- ggplot(int, aes(x = Site, y = percentage, fill = Interaction)) +
     legend.key.size = unit(0.7, "cm"))
 
 ggsave(filename = "Plots/Interactions_1TP.jpg", plot = INT, width = 6, height = 5, dpi = 300)
+write.xlsx(int, file = "Ascidian Data/Interaction_results.xlsx", rowNames = FALSE)
 
 ```
 
-
-
-
-
-
-# SUBSTRATE INTERACTIONS BOTH TPs
+## OVERALL SUBSTRATE AND INTERACTIONS
+Overall (all sites)
 ```{r}
-CB.interactions <- interactions[interactions$Site == "CB",]
-SB.interactions <- interactions[interactions$Site == "SB",]
-EB.interactions <- interactions[interactions$Site == "EB",]
-
+# SUBSTRATE
 # create percentage
-substrate.sum <- interactions %>%
-  group_by(TP, Site, Substrate) %>%
+overall.substrate.sum <- interactions %>%
+  group_by(Substrate) %>%
   summarize(sum_count = sum(n()))
 
-total_counts <- substrate.sum %>%
-  group_by(TP, Site) %>%
+total_counts <- overall.substrate.sum %>%
   summarize(total_count = sum(sum_count))
  # total count of substrates/images where ascidians occur per TP
 
-substrate.sum <- left_join(substrate.sum, total_counts, by = c("TP", "Site"))
+# calculate the percentage of times ascidians occur on each substrate at each time point
+overall.substrate <- overall.substrate.sum %>%
+  mutate(percentage = (sum_count / 56) * 100)
 
 
-CB.TP.SUB <- ggplot(CB.substrate, aes(x = TP, y = percentage, fill = Substrate)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
-       x = "",
-       fill = "") +
-  scale_fill_manual(values = substrate_color_map) +
-  theme_classic() +
-  theme(
-    text = element_text(size = 16),  # Adjust the overall font size
-    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
-    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
-    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
-    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
-    legend.text = element_text(size = 16),  # Adjust legend text font size
-    legend.title = element_text(size = 18),  # Adjust legend title font size
-    #legend.position = "bottom",  # Set legend position to bottom
-    #legend.justification = "center",  # Set legend justification to center
-    legend.key.size = unit(0.7, "cm"))
+# INTERACTIONS
+overall.interactions.sum <- interactions %>%
+  group_by(Interaction) %>%
+  summarize(sum_count = sum(n()))
 
+total_counts <- overall.interactions.sum %>%
+  summarize(total_count = sum(sum_count))
 
-SB.TP.SUB <- ggplot(SB.substrate, aes(x = TP, y = percentage, fill = Substrate)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
-       x = "",
-       fill = "") +
-  scale_fill_manual(values = substrate_color_map) +
-  theme_classic() +
-  theme(
-    text = element_text(size = 16),  # Adjust the overall font size
-    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
-    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
-    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
-    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
-    legend.text = element_text(size = 16),  # Adjust legend text font size
-    legend.title = element_text(size = 18),  # Adjust legend title font size
-    #legend.position = "bottom",  # Set legend position to bottom
-    #legend.justification = "center",  # Set legend justification to center
-    legend.key.size = unit(0.7, "cm"))
+# calculate the percentage of times ascidians occur on each substrate at each time point
+overall.int <- overall.interactions.sum %>%
+  mutate(percentage = (sum_count / 56) * 100)
 
-EB.TP.SUB <- ggplot(EB.substrate, aes(x = TP, y = percentage, fill = Substrate)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
-       x = "",
-       fill = "") +
-  scale_fill_manual(values = substrate_color_map) +
-  theme_classic() +
-  theme(
-    text = element_text(size = 16),  # Adjust the overall font size
-    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
-    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
-    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
-    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
-    legend.text = element_text(size = 16),  # Adjust legend text font size
-    legend.title = element_text(size = 18),  # Adjust legend title font size
-    #legend.position = "bottom",  # Set legend position to bottom
-    #legend.justification = "center",  # Set legend justification to center
-    legend.key.size = unit(0.7, "cm"))
 
 ```
-
 
 
 
