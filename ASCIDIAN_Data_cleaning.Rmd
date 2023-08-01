@@ -378,7 +378,7 @@ benthic.cats.2021 <- t.2021 %>%
                                                           "All other",
                                                        ifelse(Genera %in% c("OtT", "T"),
                                                               "Turf",
-                                                               ifelse(Genera %in% c("BARK", "R", "Rubble,"),
+                                                               ifelse(Genera %in% c("BARK", "R", "Rubble"),
                                                                   "Hard substrate",
                                                               "Rest"))))))))))
 
@@ -493,13 +493,13 @@ write.xlsx(full_data, "Ascidian Data/FULL_March2021_April2023.xlsx", rowNames = 
 # remove SB07 from 2021 data because there's none in 2023 data
 benthic.cats.2021 <- benthic.cats.2021 %>% filter(!(Transect_ID %in% "SB07"))
 
-ascd.int.master.2021 <- benthic.cats.2021 %>% filter(Genera == "ASCD", Cover > 0) # 25 images
+ascd.int.master.2021 <- benthic.cats.2021 %>% filter(Genera == "ASCD", Cover > 0) # 23 images
 ascd.int.char.2021 <- char.benthic.cats.2021 %>% filter(Genera == "ASCD", Cover > 0) # 0 images
-ascd.int.char.2021.CB <- char.benthic.cats.CB.2021 %>% filter(Genera == "ASCD", Cover > 0) # 4 images
+#ascd.int.char.2021.CB <- char.benthic.cats.CB.2021 %>% filter(Genera == "ASCD", Cover > 0) # 4 images
 
 # 2023
 ascd.int.master.2023.EB.SB <- benthic.cats.EB.SB %>% filter(Genera == "ASCD", Cover > 0) # 13 images
 
 ascd.int.master.2023.CB <- benthic.cats.CB %>% filter(Genera == "ASCD", Cover > 0) # 18 images
-ascd.int.char.2023 <- char.benthic.cats %>% filter(Genera == "ASCD", Cover > 0) # 8 images
+#ascd.int.char.2023 <- char.benthic.cats %>% filter(Genera == "ASCD", Cover > 0) # 0 images
 ```
