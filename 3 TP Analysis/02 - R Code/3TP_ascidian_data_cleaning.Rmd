@@ -1,0 +1,190 @@
+---
+title: "3 TP Ascidian Data Cleaning"
+author: "Shannon Eckhardt"
+date: "2023-09-22"
+output: html_document
+---
+
+**DATA CLEANING**
+
+# IMPORT LIBRARIES
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(stringr)
+library(openxlsx)
+```
+
+# IMPORT ALL DATA
+Number of transects:
+March 2021    5 CB (CB1-CB5)
+              15 EB (EB1-EB15)
+              23 SB (SB1-SB25; SB2 & SB7 removed)
+              
+April 2022    5 CB (CB1-CB5)
+              15 EB (EB1-EB15)
+              23 SB (SB1-SB25; SB2 & SB7 N/A)
+  
+April 2022    5 CB (*CB4-CB8*)
+              15 EB (EB1-EB15)
+              23 SB (SB1-SB25; SB2 & SB7 N/A)
+              
+```{r}
+cover_2021 <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/PROCESSED_benthic_cover_March_2021.xlsx")
+cover_2022 <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/PROCESSED_benthic_cover_April_2022.xlsx")
+cover_2023 <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/PROCESSED_benthic_cover_March_2023.xlsx")
+```
+
+
+# DATA CLEANING
+```{r}
+# Pick out Transect_ID
+# Pick out PQ = photoquadrat
+# Extract TP, Transect_ID, and PQ from the Name column
+cover_2021 <- cover_2021 %>%
+  mutate(TP = "April 2021",
+         Site = str_extract(Image_ID, "[A-Z]{2}"),
+         Transect_ID = str_extract(Image_ID, "[A-Z]{2}\\d+(?=_)"),
+         Transect_no = str_extract(Image_ID, "\\d+(?=\\.jpg)")) %>%
+  select(Image_ID, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+
+cover_2022 <- cover_2022 %>%
+  mutate(TP = "April 2022",
+         Site = str_extract(Image_ID, "[A-Z]{2}"),
+         Transect_ID = str_extract(Image_ID, "[A-Z]{2}\\d+(?=_)"),
+         Transect_no = str_extract(Image_ID, "\\d+(?=\\.JPG)")) %>%
+  select(Image_ID, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+
+# had to change CEM to CB in Excel beforehand
+cover_2023 <- cover_2023 %>%
+  mutate(TP = "April 2023",
+         Site = str_extract(Image_ID, "[A-Z]{2}"),
+         Transect_ID = str_extract(Image_ID, "[A-Z]{2}\\d+(?=_)"),
+         Transect_no = str_extract(Image_ID, "\\d+(?=\\.JPG)")) %>%
+  select(Image_ID, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
+```
+
+# GROUPING INTO CATEGORIES
+```{r}
+# transpose data
+t.2021 <- cover_2021 %>% pivot_longer(c(ABH:`T`), names_to = "Genera", values_to = "Cover")
+t.2022 <- cover_2022 %>% pivot_longer(c(ABH:`T`), names_to = "Genera", values_to = "Cover")
+t.2023 <- cover_2023 %>% pivot_longer(c(ABH:`T`), names_to = "Genera", values_to = "Cover")
+
+
+cats.2021 <- t.2021 %>%
+  mutate(Category = 
+           ifelse(Genera %in% c("MEH", "ACH", "MPH", "OBH", "PLH", "ABH", "ANH", "POH", "GOH", "OG"),
+                  "Hard coral",
+                  ifelse(Genera %in% c("Caulerpa", "Dictyota", "Flesh", "ACA", "Leath", "CCA", "Fol"),
+                         "Macroalgae",
+                         ifelse(Genera %in% c("Zoanthid", "anemo", "Urchin", "ESCB"),
+                                "Other benthic invertebrates",
+                                ifelse(Genera %in% c("S"),
+                                       "Sand and sediment",
+                                       ifelse(Genera %in% c("RT", "BT"),
+                                            "Cyanobacteria",
+                                            ifelse(Genera %in% "ASCD",
+                                                   "Ascidians",
+                                                   ifelse(Genera %in% "NA",
+                                                          "All other",
+                                                       ifelse(Genera %in% c("OtT", "T"),
+                                                              "Turf",
+                                                               ifelse(Genera %in% c("BARK", "R", "Rubble"),
+                                                                  "Hard substrate",
+                                                              "Rest"))))))))))
+
+cats.2022 <- t.2022 %>%
+  mutate(Category = 
+           ifelse(Genera %in% c("MEH", "ACH", "MPH", "OBH", "PLH", "ABH", "ANH", "POH", "GOH", "OG"),
+                  "Hard coral",
+                  ifelse(Genera %in% c("Caulerpa", "Dictyota", "Flesh", "ACA", "Leath", "CCA", "Fol"),
+                         "Macroalgae",
+                         ifelse(Genera %in% c("Zoanthid", "anemo", "Urchin", "ESCB"),
+                                "Other benthic invertebrates",
+                                ifelse(Genera %in% c("S"),
+                                       "Sand and sediment",
+                                       ifelse(Genera %in% c("RT", "BT"),
+                                            "Cyanobacteria",
+                                            ifelse(Genera %in% "ASCD",
+                                                   "Ascidians",
+                                                   ifelse(Genera %in% "NA",
+                                                          "All other",
+                                                       ifelse(Genera %in% c("OtT", "T"),
+                                                              "Turf",
+                                                               ifelse(Genera %in% c("BARK", "R", "Rubble"),
+                                                                  "Hard substrate",
+                                                              "Rest"))))))))))
+
+cats.2023 <- t.2023 %>%
+  mutate(Category = 
+           ifelse(Genera %in% c("MEH", "ACH", "MPH", "OBH", "PLH", "ABH", "ANH", "POH", "GOH", "OG"),
+                  "Hard coral",
+                  ifelse(Genera %in% c("Caulerpa", "Dictyota", "Flesh", "ACA", "Leath", "CCA", "Fol"),
+                         "Macroalgae",
+                         ifelse(Genera %in% c("Zoanthid", "anemo", "Urchin", "ESCB"),
+                                "Other benthic invertebrates",
+                                ifelse(Genera %in% c("S"),
+                                       "Sand and sediment",
+                                       ifelse(Genera %in% c("RT", "BT"),
+                                            "Cyanobacteria",
+                                            ifelse(Genera %in% "ASCD",
+                                                   "Ascidians",
+                                                   ifelse(Genera %in% "NA",
+                                                          "All other",
+                                                       ifelse(Genera %in% c("OtT", "T"),
+                                                              "Turf",
+                                                               ifelse(Genera %in% c("BARK", "R", "Rubble"),
+                                                                  "Hard substrate",
+                                                              "Rest"))))))))))
+```
+
+## Sum counts per broad category per quadrat (Transect_no)
+```{r}
+sum.cats.2021 <- cats.2021 %>%
+  group_by(TP, Site,Transect_ID,Transect_no,Category) %>%
+  summarize(sum_count = sum(Cover))
+
+sum.cats.2022 <- cats.2022 %>%
+  group_by(TP, Site,Transect_ID,Transect_no,Category) %>%
+  summarize(sum_count = sum(Cover))
+
+sum.cats.2023 <- cats.2023 %>%
+  group_by(TP, Site,Transect_ID,Transect_no,Category) %>%
+  summarize(sum_count = sum(Cover))
+```
+# BRING DATA TOGETHER
+```{r}
+# Transect_no is character -> convert into numeric
+sum.cats.2021$Transect_no <- as.numeric(sum.cats.2021$Transect_no)
+sum.cats.2022$Transect_no <- as.numeric(sum.cats.2022$Transect_no)
+sum.cats.2023$Transect_no <- as.numeric(sum.cats.2023$Transect_no)
+
+full_data <- rbind(sum.cats.2021, sum.cats.2022, sum.cats.2023)
+
+# this technically doesn't really matter
+unique(full_data$Transect_ID) # in contrast to the 2023 data this has EB01 instead of EB1 (2023) -> change this below:
+full_data <- full_data %>%
+  mutate(Transect_ID = gsub("(?<=\\D)0+(\\d+)", "\\1", Transect_ID, perl = TRUE))
+
+write.xlsx(full_data, "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/FULL_DATA_21_22_23.xlsx", rowNames = FALSE)
+```
+
+
+
+# QUADRATS WITH ASCIDIANS FOR INTERACTIONS
+
+```{r}
+
+int.2021 <- cats.2021 %>% filter(Genera == "ASCD", Cover > 0) # 26 images (I had 23 previously)
+
+int.2022 <- cats.2022 %>% filter(Genera == "ASCD", Cover > 0) # 40 images (I had 0 previously because this is a new TP)
+
+int.2023 <- cats.2023 %>% filter(Genera == "ASCD", Cover > 0) # 32 images (I had 13 previously)
+```
+
+
+
+
