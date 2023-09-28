@@ -54,7 +54,10 @@ cover_2022 <- cover_2022 %>%
   mutate(TP = "April 2022",
          Site = str_extract(Image_ID, "[A-Z]{2}"),
          Transect_ID = str_extract(Image_ID, "[A-Z]{2}\\d+(?=_)"),
-         Transect_no = str_extract(Image_ID, "\\d+(?=\\.JPG)")) %>%
+         # extract the number before the .JPG or extract the number at the end of the string if there is no .JPG
+         Transect_no = ifelse(str_detect(Image_ID, "\\.JPG$"), 
+                              str_extract(Image_ID, "\\d+(?=\\.JPG)"),
+                              str_extract(Image_ID, "\\d+$"))) %>% 
   select(Image_ID, TP, Site, Transect_ID, Transect_no, everything()) # reorder columns
 
 # had to change CEM to CB in Excel beforehand
