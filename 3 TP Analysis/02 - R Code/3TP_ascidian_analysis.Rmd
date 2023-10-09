@@ -55,7 +55,20 @@ CB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site ==
 ascd.transect.percent.cover$Site <- factor(ascd.transect.percent.cover$Site, levels = c("SB", "EB", "CB"))
 ```
 
-# COVER PER SITE
+# FREQUENCY OF OCCURRENCE (FOC)
+```{r}
+# filter where ASCD cover > 0
+foc <- ascd.transect.percent.cover %>%
+  filter(percent_cover > 0)
+
+# group by Site and count the number of unique Transect_IDs with sum_count of Ascidian greater than 1
+foc <- foc %>%
+  group_by(TP,Site) %>%
+  summarise(Num_Transects_with_Ascidian = n_distinct(Transect_ID))
+
+```
+
+# ASCIDIAN COVER PER SITE
 ```{r}
 # pick site colors that match map in manuscript methods
 site_colors <- c("CB" = "#FE7F9C", "EB" = "#EC9706", "SB" = "#52B2BF")
@@ -84,6 +97,9 @@ SBcover <- ggplot(SB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
     legend.justification = "center",  # Set legend justification to center
     legend.key.size = unit(1.2, "cm"))  # Adjust the size of the legend key
 
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/SB_ascidian_cover.jpg", plot = SBcover, width = 6, height = 5, dpi = 300)
+
+
 EBcover <- ggplot(EB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot(width = 0.3) +
   #stat_boxplot(geom = "errorbar", width = 0.3) +
@@ -102,6 +118,9 @@ EBcover <- ggplot(EB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
     legend.position = "bottom",
     legend.justification = "center",
     legend.key.size = unit(1.2, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/EB_ascidian_cover.jpg", plot = EBcover, width = 6, height = 5, dpi = 300)
+
 
 CBcover <- ggplot(CB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
   geom_boxplot(width = 0.3) +
@@ -122,15 +141,274 @@ CBcover <- ggplot(CB_ascd_cover, aes(x = TP, y = percent_cover, fill = Site)) +
     legend.justification = "center",
     legend.key.size = unit(1.2, "cm"))
 
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/CB_ascidian_cover.jpg", plot = CBcover, width = 6, height = 5, dpi = 300)
+
+
+```
+
+# MEAN COVER ALL CATEGORIES
+```{r}
+CB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "CB",]
+SB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "SB",]
+EB.site.percent.cover <- site.percent.cover[site.percent.cover$Site == "EB",]
+
+write.xlsx(site.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Cover_averaged_over_sites.xlsx", rowNames = FALSE)
+
+
+CB.cat.cov <- ggplot(CB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/CB_category_cover.jpg", plot = CB.cat.cov, width = 8, height = 5, dpi = 300)
+
+SB.cat.cov <- ggplot(SB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/SB_category_cover.jpg", plot = SB.cat.cov, width = 8, height = 5, dpi = 300)
+
+EB.cat.cov <- ggplot(EB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+  #guides(fill = guide_legend(nrow = 5))  # Split the legend into 2 rows
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/EB_category_cover.jpg", plot = EB.cat.cov, width = 8, height = 5, dpi = 300)
+
+```
+
+# MEAN COVER PER SITE OVER THREE TIME POINTS
+```{r}
+CB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "CB",]
+SB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "SB",]
+EB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "EB",]
+
+tp.percent.cover$Site <- factor(tp.percent.cover$Site, levels = c("SB", "EB", "CB"))
+write.xlsx(tp.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Cover_averaged_over_3TP.xlsx", rowNames = FALSE)
+
+
+# cover of all sites in one plot
+all.tp.cov <- ggplot(tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16), 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18), 
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18), 
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/All_site_cover.jpg", plot = all.tp.cov, width = 8, height = 5, dpi = 300)
+
+
+CB.tp.cov <- ggplot(CB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+  #guides(fill = guide_legend(nrow = 4))  # Split the legend into 2 rows
+
+SB.tp.cov <- ggplot(SB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16), 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18), 
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18), 
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+EB.tp.cov <- ggplot(EB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_brewer(palette = "BrBG") +  
+  theme_classic() +
+  theme(
+    text = element_text(size = 16), 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_text(size = 16),  
+    axis.title.x = element_text(size = 18),  
+    axis.title.y = element_text(size =18), 
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 18), 
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/CB_site_cover.jpg", plot = CB.tp.cov, width = 6, height = 5, dpi = 300)
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/SB_site_cover.jpg", plot = SB.tp.cov, width = 6, height = 5, dpi = 300)
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/EB_site_cover.jpg", plot = EB.tp.cov, width = 6, height = 5, dpi = 300)
+
 ```
 
 
+# STATISTICS FOR COVER
+ascd.transect.percent.cover.stats includes all transects, including those that do not contain ascidians
+SB: 23
+EB: 15
+CB: 5
+```{r}
+ascd.transect.percent.cover.stats <- ascd.transect.percent.cover %>% 
+  mutate(log_percent_cover = log(percent_cover+1))
+
+# look at distribution of percent_cover
+ggplot(ascd.transect.percent.cover.stats, aes(x = percent_cover)) +
+  geom_histogram()
+
+ggplot(ascd.transect.percent.cover.stats, aes(x = log_percent_cover)) +
+  geom_histogram()
+
+
+m1 <- lm(log_percent_cover ~ Site * TP, data = ascd.transect.percent.cover.stats)
+
+plot(m1)
+anova(m1)
+summary(m1)
+  # significant effect of interaction term p < 0.01
+  # from summary plot, get R squared, nothing more
+
+# post hoc testing
+library(emmeans)
+
+posthoc <- lsmeans(m1, pairwise ~ Site * TP, adjust = "Tukey") # adjusted using tukey-ascombe?
+
+
+#lsmeans_df <- data.frame(posthoc$contrasts)
+#write.xlsx(lsmeans_df, file = "Ascidian Data/lsmeans_results.xlsx", rowNames = FALSE)
+
+
+# No log-transformation
+m2 <- lm(percent_cover ~ Site * TP, data = ascd.transect.percent.cover)
+plot(m2)
+anova(m2)
+summary(m2)
+lsmeans(m2, pairwise ~ Site * TP, adjust = "Tukey")
+
+
+```
+
+## BETA BINOMIAL DISTRIBUTION
+```{r}
+library(glmmTMB)
+
+# convert percent cover from 0-100 to 0-1
+ascd.transect.percent.cover$percent_cover <- ascd.transect.percent.cover$percent_cover / 100
+
+m.bb <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID),
+                 family = betabinomial(link = "logit"),
+                 data = ascd.transect.percent.cover)
+
+diagnose()
+
+
+```
+
+## HURDLE MODEL
+```{r}
+m.hurd <- glmmTMB(percent_cover~TP*Site, ziformula=~1, data=ascd.transect.percent.cover, family=beta_family())
+
+library(DHARMa)
+
+simulationOutput <- simulateResiduals(fittedModel = m.hurd, plot = F)
+
+plot(simulationOutput)
 
 
 
 
+# Residual Analysis Plot
+residual_plot <- plotResiduals(m.hurd)
 
 
+
+# Q-Q Plot
+qq_plot <- plotQQunif(m.hurd)
+
+# Scale-Location Plot
+scale_location_plot <- plotResiduals(m.hurd, type = "scale-location")
+
+# Residual vs. Leverage Plot
+residual_leverage_plot <- plotResiduals(m.hurd, type = "residual-vs-leverage")
+
+
+```
 
 
 
