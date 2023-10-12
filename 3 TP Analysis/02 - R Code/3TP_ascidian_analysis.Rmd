@@ -44,7 +44,6 @@ tp.percent.cover <- full_data %>%
 # just the ascidians
 ascd.transect.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Ascidians",]
 
-
 # one df per site
 SB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site == "SB",]
 EB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site == "EB",]
@@ -54,6 +53,21 @@ CB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site ==
 #relevel sites, SB, EB, CB
 ascd.transect.percent.cover$Site <- factor(ascd.transect.percent.cover$Site, levels = c("SB", "EB", "CB"))
 ```
+# EXTRACT SAND DATA
+```{r}
+# sand percent cover
+sand.percent.cover <- transect.percent.cover[transect.percent.cover$Category == "Sand and sediment",]
+# rename percent_cover to sand_percent_cover
+sand.percent.cover <- sand.percent.cover %>% rename(sand_percent_cover = percent_cover)
+# add sand percent cover column to ascidian data to make new df which includes cover for ascidians and sand
+
+ascd.sand.cover <- left_join(ascd.transect.percent.cover, 
+                       sand.percent.cover %>% dplyr::select(TP, Site, Transect_ID, sand_percent_cover),
+                       by = c("TP", "Site", "Transect_ID"))
+
+# add 
+```
+
 
 # FREQUENCY OF OCCURRENCE (FOC)
 ```{r}
@@ -228,6 +242,7 @@ SB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "SB",]
 EB.tp.percent.cover <- tp.percent.cover[tp.percent.cover$Site == "EB",]
 
 tp.percent.cover$Site <- factor(tp.percent.cover$Site, levels = c("SB", "EB", "CB"))
+
 write.xlsx(tp.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Cover_averaged_over_3TP.xlsx", rowNames = FALSE)
 
 
@@ -382,31 +397,27 @@ diagnose()
 
 ## HURDLE MODEL
 ```{r}
-m.hurd <- glmmTMB(percent_cover~TP*Site, ziformula=~1, data=ascd.transect.percent.cover, family=beta_family())
+m.hurd <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
+m.hurd.sand <- glmmTMB(percent_cover ~ TP * Site+ sand_percent_cover + (1|Transect_ID), ziformula = ~1, data = ascd.sand.cover, family=beta_family())
+
+
 
 library(DHARMa)
 
 simulationOutput <- simulateResiduals(fittedModel = m.hurd, plot = F)
-
+simulationOutput.sand <- simulateResiduals(fittedModel = m.hurd.sand, plot = F)
 plot(simulationOutput)
+plot(simulationOutput.sand)
 
 
 
+library(car)
+Anova(m.hurd)
+Anova(m.hurd.sand)
 
-# Residual Analysis Plot
-residual_plot <- plotResiduals(m.hurd)
-
-
-
-# Q-Q Plot
-qq_plot <- plotQQunif(m.hurd)
-
-# Scale-Location Plot
-scale_location_plot <- plotResiduals(m.hurd, type = "scale-location")
-
-# Residual vs. Leverage Plot
-residual_leverage_plot <- plotResiduals(m.hurd, type = "residual-vs-leverage")
-
+library(emmeans)
+emmeans(m.hurd, ~ TP * Site, component = "response")
+?emmeans
 
 ```
 
@@ -414,6 +425,151 @@ residual_leverage_plot <- plotResiduals(m.hurd, type = "residual-vs-leverage")
 
 
 
+
+# INTERACTIONS
+```{r}
+interactions <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/Interactions.xlsx")
+```
+
+## SUBSTRATE SINGLE TP
+```{r}
+# Define the custom colors for each substrate type
+substrate_types <- c("Cyanobacteria",
+                     "Hard coral", 
+                     "Hard substrate",
+                     "Macroalgae",
+                     "Sand and sediment",
+                     "Turf")
+
+substrate_colors <- brewer.pal(6, "BrBG")
+
+#library(scales)
+#substrate_colors_light <- alpha(substrate_colors, alpha = 0.75) # make it lighter/more transparent
+substrate_color_map <- setNames(substrate_colors, substrate_types)
+
+
+# create percentage
+substrate.sum <- interactions %>%
+  group_by(Site, Substrate) %>%
+  summarize(sum_count = sum(n()))
+
+total_counts <- substrate.sum %>%
+  group_by(Site) %>%
+  summarize(total_count = sum(sum_count))
+ # total count of substrates/images where ascidians occur per TP
+
+substrate.sum <- left_join(substrate.sum, total_counts, by = "Site")
+
+# calculate the percentage of times ascidians occur on each substrate at each time point
+substrate <- substrate.sum %>%
+  mutate(percentage = (sum_count / total_count) * 100)
+
+substrate$Site <- factor(substrate$Site, levels = c("SB", "EB", "CB"))
+
+SUB <- ggplot(substrate, aes(x = Site, y = percentage, fill = Substrate)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_manual(values = substrate_color_map) +
+  theme_classic() +
+  ggtitle("Substrate") +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/Substrate_1TP.jpg", plot = SUB, width = 6, height = 5, dpi = 300)
+write.xlsx(substrate, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Substrate_results.xlsx", rowNames = FALSE)
+
+
+# overall substrate numbers
+
+```
+
+## INTERACTIONS
+```{r}
+# create percentage
+interactions.sum <- interactions %>%
+  group_by(Site, Interaction) %>%
+  summarize(sum_count = sum(n()))
+
+total_counts <- interactions.sum %>%
+  group_by(Site) %>%
+  summarize(total_count = sum(sum_count))
+ # total count of substrates/images where ascidians occur per TP
+
+interactions.sum <- left_join(interactions.sum, total_counts, by = "Site")
+
+# calculate the percentage of times ascidians occur on each substrate at each time point
+int <- interactions.sum %>%
+  mutate(percentage = (sum_count / total_count) * 100)
+
+int$Site <- factor(int$Site, levels = c("SB", "EB", "CB"))
+
+INT <- ggplot(int, aes(x = Site, y = percentage, fill = Interaction)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(y = "Frequency",
+       x = "",
+       fill = "") +
+  scale_fill_manual(values = substrate_color_map) +
+  theme_classic() +
+  ggtitle("Interactions") +
+  theme(
+    text = element_text(size = 16),  # Adjust the overall font size
+    axis.text.x = element_text(size = 16),  # Adjust x-axis tick label font size
+    axis.text.y = element_text(size = 16),  # Adjust y-axis tick label font size
+    axis.title.x = element_text(size = 18),  # Adjust x-axis label font size
+    axis.title.y = element_text(size =18),  # Adjust y-axis label font size
+    legend.text = element_text(size = 16),  # Adjust legend text font size
+    legend.title = element_text(size = 18),  # Adjust legend title font size
+    #legend.position = "bottom",  # Set legend position to bottom
+    #legend.justification = "center",  # Set legend justification to center
+    legend.key.size = unit(0.7, "cm"))
+
+ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/Interactions_1TP.jpg", plot = INT, width = 6, height = 5, dpi = 300)
+write.xlsx(int, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Interaction_results.xlsx", rowNames = FALSE)
+
+```
+
+## OVERALL SUBSTRATE AND INTERACTIONS NUMBERS
+Overall (all sites)
+```{r}
+# SUBSTRATE
+# create percentage
+overall.substrate.sum <- interactions %>%
+  group_by(Substrate) %>%
+  summarize(sum_count = sum(n()))
+
+total_counts <- overall.substrate.sum %>%
+  summarize(total_count = sum(sum_count))
+ # total count of substrates/images where ascidians occur per TP
+
+# calculate the percentage of times ascidians occur on each substrate at each time point
+overall.substrate <- overall.substrate.sum %>%
+  mutate(percentage = (sum_count / 56) * 100)
+
+
+# INTERACTIONS
+overall.interactions.sum <- interactions %>%
+  group_by(Interaction) %>%
+  summarize(sum_count = sum(n()))
+
+total_counts <- overall.interactions.sum %>%
+  summarize(total_count = sum(sum_count))
+
+# calculate the percentage of times ascidians occur on each substrate at each time point
+overall.int <- overall.interactions.sum %>%
+  mutate(percentage = (sum_count / 56) * 100)
+
+```
 
 
 
