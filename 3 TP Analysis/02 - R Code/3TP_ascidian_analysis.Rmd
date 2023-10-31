@@ -52,6 +52,9 @@ CB_ascd_cover <- ascd.transect.percent.cover[ascd.transect.percent.cover$Site ==
 
 #relevel sites, SB, EB, CB
 ascd.transect.percent.cover$Site <- factor(ascd.transect.percent.cover$Site, levels = c("SB", "EB", "CB"))
+
+# save df for statistics
+write.xlsx(ascd.transect.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/Ascidian_transect_percent_cover.xlsx", rowNames = FALSE)
 ```
 # EXTRACT SAND DATA
 ```{r}
@@ -65,7 +68,6 @@ ascd.sand.cover <- left_join(ascd.transect.percent.cover,
                        sand.percent.cover %>% dplyr::select(TP, Site, Transect_ID, sand_percent_cover),
                        by = c("TP", "Site", "Transect_ID"))
 
-# add 
 ```
 
 
@@ -340,85 +342,115 @@ SB: 23
 EB: 15
 CB: 5
 ```{r}
-ascd.transect.percent.cover.stats <- ascd.transect.percent.cover %>% 
-  mutate(log_percent_cover = log(percent_cover+1))
-
-# look at distribution of percent_cover
-ggplot(ascd.transect.percent.cover.stats, aes(x = percent_cover)) +
-  geom_histogram()
-
-ggplot(ascd.transect.percent.cover.stats, aes(x = log_percent_cover)) +
-  geom_histogram()
-
-
-m1 <- lm(log_percent_cover ~ Site * TP, data = ascd.transect.percent.cover.stats)
-
-plot(m1)
-anova(m1)
-summary(m1)
-  # significant effect of interaction term p < 0.01
-  # from summary plot, get R squared, nothing more
-
-# post hoc testing
-library(emmeans)
-
-posthoc <- lsmeans(m1, pairwise ~ Site * TP, adjust = "Tukey") # adjusted using tukey-ascombe?
-
-
-#lsmeans_df <- data.frame(posthoc$contrasts)
-#write.xlsx(lsmeans_df, file = "Ascidian Data/lsmeans_results.xlsx", rowNames = FALSE)
-
-
-# No log-transformation
-m2 <- lm(percent_cover ~ Site * TP, data = ascd.transect.percent.cover)
-plot(m2)
-anova(m2)
-summary(m2)
-lsmeans(m2, pairwise ~ Site * TP, adjust = "Tukey")
+# ascd.transect.percent.cover.stats <- ascd.transect.percent.cover %>% 
+#   mutate(log_percent_cover = log(percent_cover+1))
+# 
+# # look at distribution of percent_cover
+# ggplot(ascd.transect.percent.cover.stats, aes(x = percent_cover)) +
+#   geom_histogram()
+# 
+# ggplot(ascd.transect.percent.cover.stats, aes(x = log_percent_cover)) +
+#   geom_histogram()
+# 
+# 
+# m1 <- lm(log_percent_cover ~ Site * TP, data = ascd.transect.percent.cover.stats)
+# 
+# plot(m1)
+# anova(m1)
+# summary(m1)
+#   # significant effect of interaction term p < 0.01
+#   # from summary plot, get R squared, nothing more
+# 
+# # post hoc testing
+# library(emmeans)
+# 
+# posthoc <- lsmeans(m1, pairwise ~ Site * TP, adjust = "Tukey") # adjusted using tukey-ascombe?
+# 
+# 
+# #lsmeans_df <- data.frame(posthoc$contrasts)
+# #write.xlsx(lsmeans_df, file = "Ascidian Data/lsmeans_results.xlsx", rowNames = FALSE)
+# 
+# 
+# # No log-transformation
+# m2 <- lm(percent_cover ~ Site * TP, data = ascd.transect.percent.cover)
+# plot(m2)
+# anova(m2)
+# summary(m2)
+# lsmeans(m2, pairwise ~ Site * TP, adjust = "Tukey")
 
 
 ```
 
 ## BETA BINOMIAL DISTRIBUTION
 ```{r}
-library(glmmTMB)
-
-# convert percent cover from 0-100 to 0-1
-ascd.transect.percent.cover$percent_cover <- ascd.transect.percent.cover$percent_cover / 100
-
-m.bb <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID),
-                 family = betabinomial(link = "logit"),
-                 data = ascd.transect.percent.cover)
-
-diagnose()
-
+# library(glmmTMB)
+# 
+# 
+# m.bb <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID),
+#                  family = betabinomial(link = "logit"),
+#                  data = ascd.transect.percent.cover)
+# 
+# diagnose()
+# 
 
 ```
 
 ## HURDLE MODEL
 ```{r}
+library(glmmTMB)
+
+# convert percent cover from 0-100 to 0-1
+ascd.transect.percent.cover$percent_cover <- ascd.transect.percent.cover$percent_cover / 100
+
 m.hurd <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
-m.hurd.sand <- glmmTMB(percent_cover ~ TP * Site+ sand_percent_cover + (1|Transect_ID), ziformula = ~1, data = ascd.sand.cover, family=beta_family())
+#m.hurd.sand <- glmmTMB(percent_cover ~ TP * Site+ sand_percent_cover + (1|Transect_ID), ziformula = ~1, data = ascd.sand.cover, family=beta_family())
 
 
 
-library(DHARMa)
-
-simulationOutput <- simulateResiduals(fittedModel = m.hurd, plot = F)
-simulationOutput.sand <- simulateResiduals(fittedModel = m.hurd.sand, plot = F)
-plot(simulationOutput)
-plot(simulationOutput.sand)
-
-
-
-library(car)
-Anova(m.hurd)
-Anova(m.hurd.sand)
+# library(DHARMa)
+# 
+# simulationOutput <- simulateResiduals(fittedModel = m.hurd, plot = F)
+# simulationOutput.sand <- simulateResiduals(fittedModel = m.hurd.sand, plot = F)
+# plot(simulationOutput)
+# plot(simulationOutput.sand)
+# 
+# 
+# 
+# library(car)
+# Anova(m.hurd)
+# Anova(m.hurd.sand)
+# 
+# library(emmeans)
+# emmeans(m.hurd, ~ TP * Site, component = "response")
+# ?emmeans
 
 library(emmeans)
-emmeans(m.hurd, ~ TP * Site, component = "response")
-?emmeans
+# Calculate marginal means for Site and Time Point
+emmeans_results <- emmeans(m.hurd, ~ Site + TP, model = "zero_infl")
 
+# Perform pairwise comparisons for sites
+site_comparisons <- pairs(emmeans_results, by = "Site")
+
+# Perform pairwise comparisons for time points
+tp_comparisons <- pairs(emmeans_results, by = "TP")
+
+# Summarize the results
+summary(site_comparisons)
+summary(tp_comparisons)
+
+# Perform pairwise comparisons for both Site and TP
+site_tp_comparisons <- pairs(emmeans_results, by = NULL)
+
+# Summarize the results
+summary(site_tp_comparisons)
+
+
+# Likelihood ratio test (LRT) instead of anova as they are more suited for mixed-effects models and models with non-Gaussian distributions
+library(lmtest)
+
+# Perform a likelihood ratio test for the influence of Site and TP
+lrtest_result <- lrtest(m.hurd, ~Site + TP)
+print(lrtest_result)
 ```
 
 

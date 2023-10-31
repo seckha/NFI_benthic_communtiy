@@ -1,0 +1,69 @@
+---
+title: "3 TP Ascidian statistics"
+author: "Shannon Eckhardt"
+date: "2023-10-31"
+output: html_document
+---
+
+Statistics for ascidian cover
+
+# IMPORT LIBRARIES
+```{r}
+library(readxl) # load data
+library(glmmTMB) # for hurdle model
+library(emmeans) # for post-hoc analysis
+library(lmtest) # for likelihood ratio test
+library(DHARMa) # for diagnostics
+```
+
+# IMPORT DATA
+```{r}
+ascd.transect.percent.cover <- read_excel("3 TP Analysis/01 - Data/Ascidian_transect_percent_cover.xlsx")
+```
+
+# HURDLE MODEL - using glmmTMB
+```{r}
+# convert percent cover from 0-100 to 0-1
+ascd.transect.percent.cover$percent_cover <- ascd.transect.percent.cover$percent_cover / 100
+
+m.hurd <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
+
+
+# diagnostics
+simulationOutput <- simulateResiduals(fittedModel = m.hurd, plot = F)
+plot(simulationOutput)
+```
+
+# ANOVA/LRT - using lmtest
+Does ascidian cover significantly vary between site and time point?
+```{r}
+# Likelihood ratio test (LRT) instead of anova as they are more suited for mixed-effects models and models with non-Gaussian distributions?
+
+# likelihood ratio test for the influence of Site and TP
+lrtest_result <- lrtest(m.hurd, ~Site + TP)
+print(lrtest_result)
+```
+
+# POST-HOC ANALYSIS - using emmeans
+```{r}
+# calculate marginal means for Site and Time Point
+emmeans_results <- emmeans(m.hurd, ~ Site + TP, model = "zero_infl")
+
+# perform pairwise comparisons for sites
+site_comparisons <- pairs(emmeans_results, by = "Site")
+
+# perform pairwise comparisons for time points
+tp_comparisons <- pairs(emmeans_results, by = "TP")
+
+# perform pairwise comparisons for both Site and TP
+site_tp_comparisons <- pairs(emmeans_results, by = NULL)
+
+# summarize the results
+summary(site_comparisons)
+summary(tp_comparisons)
+summary(site_tp_comparisons)
+```
+
+
+
+
