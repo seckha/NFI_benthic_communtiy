@@ -14,11 +14,23 @@ library(glmmTMB) # for hurdle model
 library(emmeans) # for post-hoc analysis
 library(lmtest) # for likelihood ratio test
 library(DHARMa) # for diagnostics
+library(tidyverse)
 ```
 
 # IMPORT DATA
 ```{r}
-ascd.transect.percent.cover <- read_excel("3 TP Analysis/01 - Data/Ascidian_transect_percent_cover.xlsx")
+ascd.transect.percent.cover <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/Ascidian_transect_percent_cover.xlsx")
+
+full_data <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/FULL_DATA_21_22_23.xlsx")
+
+# transect percent cover
+full_dat_transect_percent_cover <- full_data %>%
+  group_by(TP, Site, Transect_ID, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
+
+# make tibble into data frame
+full_dat_transect_percent_cover <- as.data.frame(full_dat_transect_percent_cover)
 ```
 
 # HURDLE MODEL - using glmmTMB
@@ -62,6 +74,94 @@ site_tp_comparisons <- pairs(emmeans_results, by = NULL)
 summary(site_comparisons)
 summary(tp_comparisons)
 summary(site_tp_comparisons)
+```
+
+
+# TRY TO DO PCA
+
+after: https://www.youtube.com/watch?v=mNpBrHwOCt4
+
+```{r}
+library(MASS)
+library(factoextra)
+library(ggplot2)
+
+# transpose df
+wide.full.dat <- full_dat_transect_percent_cover %>% pivot_wider(names_from = Category, values_from = percent_cover)
+
+str(wide.full.dat) # all relevant variables are numeric
+summary(wide.full.dat)
+
+# delete classes with NA
+# have no NAs
+
+# exclude categorical data (in 4 four columns)
+full.dat.sample <- wide.full.dat[, -c(1:4)]
+
+# run PCA
+full.dat.pca <- prcomp(full.dat.sample,
+                       scale = TRUE) # ensures that data is standardized - important to avoid bias in analysis
+
+# summary of analysis
+summary(full.dat.pca)
+
+
+# elements of PCA object
+names(full.dat.pca)
+# 5 more elements provide additional analysis output
+
+# standard dev of components
+full.dat.pca$sdev
+
+# eigenvectors = loadings per variable per vector component
+full.dat.pca$rotation
+
+# standard dev & mean of original variables
+full.dat.pca$center
+full.dat.pca$scale
+
+# principal component scores for all 9 components
+full.dat.pca$x
+
+
+
+# VISUALIZE RESULTS
+
+# scree plot of variance = shows explained variance per component - used to decide on optimal number of components to retain in analysis
+fviz_eig(full.dat.pca, 
+         addlabels = TRUE, # visualize variance percentages
+         ylim = c(0, 40)) # to arrange limits of y axis
+
+# biplot with default settings - interpret PCA results
+fviz_pca_biplot(full.dat.pca)
+
+# biplot with labeled variables = suppress data point labels
+fviz_pca_biplot(full.dat.pca,
+                label = "var")
+
+# biplot with colored groups - color by a group = TP or site
+fviz_pca_biplot(full.dat.pca,
+                label = "var",
+                habillage = wide.full.dat$Site)
+
+fviz_pca_biplot(full.dat.pca,
+                label = "var",
+                habillage = wide.full.dat$TP)
+
+# biplot with customized colored groups & variables
+fviz_pca_biplot(full.dat.pca,
+                label = "var",
+                habillage = wide.full.dat$Site, 
+                col.var = "black") +
+  scale_color_manual(values = c("magenta", "orange", "steelblue"))
+
+fviz_pca_biplot(full.dat.pca,
+                label = "var",
+                habillage = wide.full.dat$TP, 
+                col.var = "black") +
+  scale_color_manual(values = c("magenta", "orange", "steelblue"))
+
+
 ```
 
 
