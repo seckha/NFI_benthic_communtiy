@@ -76,7 +76,6 @@ summary(tp_comparisons)
 summary(site_tp_comparisons)
 ```
 
-
 # TRY TO DO PCA
 
 after: https://www.youtube.com/watch?v=mNpBrHwOCt4
@@ -164,6 +163,22 @@ fviz_pca_biplot(full.dat.pca,
 
 ```
 
+# CORRELATION MATRIX
+
+Look for correlations between variables
+
+```{r}
+str(wide.full.dat)
+res <- cor(wide.full.dat[,c(5:13)])
+round(res, 2)
+```
+Interesting:
+- Hard coral & macroalgae: -0.49 = when there's more coral there's less macroalgae
+- Hard coral & benthic inverts: 0.37 = when there's more hard coral, there's more benthic inverts
+- Macroalgae & hard coral: -0.49 = when there's more macroalgae there's less coral?
+
+Not really any strong correlations for ascidians at all
+-> highest one is ascidians & macroalgae with -0.1 = more ascidians, less macro & more macro, less ascidians?
 
 
 
