@@ -522,8 +522,6 @@ ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 
 write.xlsx(substrate, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/04 - Tables/Substrate_results.xlsx", rowNames = FALSE)
 
 
-# overall substrate numbers
-
 ```
 
 ## INTERACTIONS
