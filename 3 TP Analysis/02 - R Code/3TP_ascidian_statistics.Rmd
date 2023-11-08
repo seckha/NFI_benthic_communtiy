@@ -33,6 +33,12 @@ full_dat_transect_percent_cover <- full_data %>%
 
 # make tibble into data frame
 full_dat_transect_percent_cover <- as.data.frame(full_dat_transect_percent_cover)
+
+# site percent cover
+full_dat_site_percent_cover <- full_data %>%
+  group_by(TP, Site, Category) %>%
+  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
+  mutate(SE = sd(percent_cover) / sqrt(n()))
 ```
 
 # HURDLE MODEL - using glmmTMB
@@ -50,18 +56,28 @@ plot(simulationOutput)
 
 # ANOVA/LRT - using lmtest
 Does ascidian cover significantly vary between site and time point?
+
+To do a LRT I usually test by fitting the null and alternative model and then run anova() on the two models. This is testing if the change in percent of cover is different for sites over time, i.e., the interaction term. That is that slopes are different for sites over time. It is also testing if the alternative model is better at explaining the data than the null model. 
 ```{r}
 # Likelihood ratio test (LRT) instead of anova as they are more suited for mixed-effects models and models with non-Gaussian distributions?
 
-# likelihood ratio test for the influence of Site and TP
-lrtest_result <- lrtest(m.hurd, ~Site + TP)
-print(lrtest_result)
+# Model 1 (my model)
+m.hurd <- glmmTMB(percent_cover ~ TP * Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
+
+# Model 2 (null hypothesis - no interaction between TP & Site)
+m.hurd.null <- glmmTMB(percent_cover ~ TP + Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
+
+anova(m.hurd.null, m.hurd)
+
+# Is this telling me that the null hypothesis can be rejected as p < 0.001?
+# This would mean that the interaction term of TP*Site is a better model = they significantly influence percent cover?
+
 ```
 # BOOTSTRAP LRT
 ```{r}
-library(lme4)
-library(boot)
-update.packages()
+# library(lme4)
+# library(boot)
+
 likelihood_ratio_statistic <- function(data, indices) {
   data_subset <- data[indices, ]
   m_null <- glmmTMB(percent_cover ~ TP + Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
@@ -78,9 +94,14 @@ bootstrap_results <- boot(data = ascd.transect.percent.cover,
                           R = 1000)
 
 summary(bootstrap_results)
+
+# Get the original likelihood ratio statistic
+t0 <- bootstrap_results$t0
+
+# Calculate a p-value for the interaction effect of TP and Site
+p_value_interaction <- mean(bootstrap_results$t >= t0)
+
 ```
-
-
 
 # POST-HOC ANALYSIS - using emmeans
 ```{r}
@@ -187,6 +208,86 @@ fviz_pca_biplot(full.dat.pca,
   scale_color_manual(values = c("magenta", "orange", "steelblue"))
 
 ```
+
+
+# ORDINATION PLOT: NMDS ANALYSIS
+```{r}
+library(vegan)
+
+# transpose df
+wide.full.dat <- full_dat_transect_percent_cover %>% pivot_wider(names_from = Category, values_from = percent_cover)
+
+# exclude categorical data (in 4 four columns)
+full.dat.sample <- wide.full.dat[, -c(1:4)]
+# turn tibble into df
+full.dat.sample <- as.data.frame(full.dat.sample)
+str(wide.full.dat)
+# 1 - Calculate dissimilarity matrix
+  # quantify dissimilarity or similarity between sites based on benthic community data
+diss_matrix <- vegdist(full.dat.sample, method = "bray")
+
+# 2 - Perform NMDS
+set.seed(1)
+nmds_result <- metaMDS(diss_matrix)
+
+# 3 - Visualize NMDS plot
+plot(nmds_result)
+
+# Stress plot
+  # if all the blue points fall on red line = low stress value
+  # lower stress value = better NMDS model
+stressplot(nmds_result)
+nmds_result$stress # stress value
+```
+How do you decide if a stress value is good or not? -> *Goodness-of-fit*
+Rule of thumb:
+Stress value *> 2* indicates a *poor fit* -> risks in interpretation
+Stress value *0.1 - 0.2* indicates a *fair fit* -> some distances misleading
+Stress value *0.05-0.1* indicates a *good fit* -> inferences confident
+Stress value *< 0.05* indicates *excellent fit*
+
+If you do ordination in more dimensions (more than 2 like we are doing here), the stress value decreases and the fit increases as more dimensions can explain the distances between points better
+
+```{r}
+# make the NMDS plot in ggplot to visualize better
+# need to extract x and y axes from nmds_result = NMDS1 & NMDS2
+nmdsscores <- as.data.frame(scores(nmds_result))
+
+```
+
+## SECOND TRY
+```{r}
+# use site percent cover (because transect ID irrelevant)
+wide.site.cover <- full_dat_site_percent_cover %>% pivot_wider(names_from = Category, values_from = percent_cover)
+
+# for ndms, character columns need to be excluded - exclude TP and Site & then Category will be the rownames
+sample <- wide.site.cover[, -c(1:3)]
+
+diss_matrix <- vegdist(sample, method = "bray")
+
+set.seed(1)
+nmds <- metaMDS(diss_matrix)
+
+nmds$points
+scores(nmds)
+plot(nmds)
+
+# Get the column (Category) names
+category_names <- colnames(sample)
+
+# Convert NMDS result to a data frame
+nmds_data <- data.frame(NMDS1 = nmds$points[, 1], NMDS2 = nmds$points[, 2])
+
+# Create the NMDS plot using ggplot
+ggplot(nmds_data, aes(NMDS1, NMDS2)) +
+  geom_point() +
+  geom_text(aes(label = category_names), nudge_x = 0.02, nudge_y = 0.02, size = 3) +
+  theme_bw()
+
+# here sample has 9 rows and 9 columns so the points actually display the 3 sites at the 3 time points and not the 9 categories!!!
+```
+
+
 
 # CORRELATION MATRIX
 
