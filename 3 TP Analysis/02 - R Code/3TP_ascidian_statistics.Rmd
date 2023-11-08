@@ -9,6 +9,8 @@ Statistics for ascidian cover
 
 # IMPORT LIBRARIES
 ```{r}
+library(lme4)
+library(boot)
 library(readxl) # load data
 library(glmmTMB) # for hurdle model
 library(emmeans) # for post-hoc analysis
@@ -55,6 +57,30 @@ Does ascidian cover significantly vary between site and time point?
 lrtest_result <- lrtest(m.hurd, ~Site + TP)
 print(lrtest_result)
 ```
+# BOOTSTRAP LRT
+```{r}
+library(lme4)
+library(boot)
+update.packages()
+likelihood_ratio_statistic <- function(data, indices) {
+  data_subset <- data[indices, ]
+  m_null <- glmmTMB(percent_cover ~ TP + Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
+  
+  # Compute the likelihood ratio statistic
+  LRT_statistic <- 2 * (logLik(m_null) - logLik(m.hurd))
+  
+  return(LRT_statistic)
+}
+
+set.seed(123)  # for reproducibility
+bootstrap_results <- boot(data = ascd.transect.percent.cover, 
+                          statistic = likelihood_ratio_statistic, 
+                          R = 1000)
+
+summary(bootstrap_results)
+```
+
+
 
 # POST-HOC ANALYSIS - using emmeans
 ```{r}
@@ -159,7 +185,6 @@ fviz_pca_biplot(full.dat.pca,
                 habillage = wide.full.dat$TP, 
                 col.var = "black") +
   scale_color_manual(values = c("magenta", "orange", "steelblue"))
-
 
 ```
 
