@@ -9,6 +9,7 @@ Statistics for ascidian cover
 
 # IMPORT LIBRARIES
 ```{r}
+rm(list=ls())
 library(lme4)
 library(boot)
 library(readxl) # load data
@@ -73,37 +74,87 @@ anova(m.hurd.null, m.hurd)
 # This would mean that the interaction term of TP*Site is a better model = they significantly influence percent cover?
 
 ```
-# BOOTSTRAP LRT
+# POST-HOC ANALYSIS
+
+The emmip function is a really easy way to visualise the interaction term.
 ```{r}
-# library(lme4)
-# library(boot)
+emmeans_plot <- emmip(m.hurd,  ~ TP ~ Site, CIs = TRUE) 
+emmeans_plot
+```
 
-likelihood_ratio_statistic <- function(data, indices) {
-  data_subset <- data[indices, ]
-  m_null <- glmmTMB(percent_cover ~ TP + Site + (1|Transect_ID), ziformula = ~1, data = ascd.transect.percent.cover, family=beta_family())
-  
-  # Compute the likelihood ratio statistic
-  LRT_statistic <- 2 * (logLik(m_null) - logLik(m.hurd))
-  
-  return(LRT_statistic)
-}
+To set up the contrasts of the interaction terms, I first get the estimated marginal means for all of the combinations of the factor levels as follows:
 
-set.seed(123)  # for reproducibility
-bootstrap_results <- boot(data = ascd.transect.percent.cover, 
-                          statistic = likelihood_ratio_statistic, 
-                          R = 1000)
+```{r}
+em_height <- emmeans(m.hurd,  ~ TP + Site, combine= TRUE)
+```
 
-summary(bootstrap_results)
+Then I store the order of the factors that emmeans uses:
+```{r}
+combm <-  as.data.frame(em_height)[,1:2]
+```
 
-# Get the original likelihood ratio statistic
-t0 <- bootstrap_results$t0
-
-# Calculate a p-value for the interaction effect of TP and Site
-p_value_interaction <- mean(bootstrap_results$t >= t0)
+I create a diagonal matrix which has the same number of rows and columns as the number of combinations (or levels if it only one factor). There are 3 levels in each of height_cat and YEAR, so the matrix is as follows:
+```{r}
+base <- as.data.frame(diag(3*3))
+```
+Then you can name the rows and columns to be the combination levels
+```{r}
+colnames(base) = rownames(base) = paste0(combm$TP, combm$Site)
+base
 
 ```
 
-# POST-HOC ANALYSIS - using emmeans
+Then I can calculate the differences in change between time points between levels of height. For example, looking at the differences of change for High and Medium between 96 and 95 is coded as (base$High96 - base$High95) - (base$Med96 - base$Med95). To adjust for multiple pairwise tests use the multivariate t distribution adjust = "mvt".
+
+```{r}
+selected_contrasts <- contrast(em_height, method = 
+                                    # is the rate of change different within sites over time (between years)
+                                 list("CB 22-21 v. CB 23-22" = (base$`April 2022CB` - base$`April 2021CB`) - (base$`April 2023CB` - base$`April 2022CB`),
+                                      "EB 22-21 v. EB 23-22" = (base$`April 2022EB` - base$`April 2021EB`) - (base$`April 2023EB` - base$`April 2022EB`),
+                                      "SB 22-21 v. SB 23-22" = (base$`April 2022SB` - base$`April 2021SB`) - (base$`April 2023SB` - base$`April 2022SB`), 
+                               
+                                      # is the rate of change different between CB and EB between years
+                                      "CB 22-21 v. EB 22-21" = (base$`April 2022CB` - base$`April 2021CB`) - (base$`April 2022EB` - base$`April 2021EB`),
+                                      "CB 23-22 v. EB 23-22" = (base$`April 2023CB` - base$`April 2022CB`) - (base$`April 2023EB` - base$`April 2022EB`),
+                                      
+                                      # is the rate of change different between CB and SB between years
+                                      "CB 22-21 v. SB 22-21" = (base$`April 2022CB` - base$`April 2021CB`) - (base$`April 2022SB` - base$`April 2021SB`),
+                                      "CB 23-22 v. SB 23-22" = (base$`April 2023CB` - base$`April 2022CB`) - (base$`April 2023SB` - base$`April 2022SB`),
+                                      
+                                      # is the rate of change different between EB and SB between years
+                                      "EB 22-21 v. SB 22-21" = (base$`April 2022EB` - base$`April 2021EB`) - (base$`April 2022SB` - base$`April 2021SB`),
+                                      "EB 23-22 v. SB 23-22" = (base$`April 2023EB` - base$`April 2022EB`) - (base$`April 2023SB` - base$`April 2022SB`)),
+                               adjust = "mvt", type = "response")
+```
+
+Results of the pairwise test are as follows:
+```{r}
+cbind(summary(selected_contrasts),confint(selected_contrasts)[,5:6]) %>% 
+  as.data.frame() %>% 
+  mutate_at(2:8, round, 3)
+```
+
+1. Suggested evidence that there is a difference in change of ascidian cover between CB 22-21 to CB 23-22
+2. Suggested evidence that there is a difference in change of ascidian cover between CB 23-22 to EB 23-22
+3. Suggested evidence that there is a difference in change of ascidian cover between CB 23-22 to SB 23-22
+
+*This means that compared to 2021-2022 in CB, and 2022-2023 in SB and CB, there is suggested evidence that the change of ascidian cover in CB from 2022-2023 is different. Meaning that in CB from 2022-2023, ascidian cover did not increase at the same level as EB and SB in the same year.*
+
+
+The results confirm what was shown in the interaction plot. Two pairwise comparisons, H v. L by time 96-95 and M v. L by time 96-95 suggested evidence there was a difference in change between 96 and 95 across heights.
+
+
+
+
+
+
+
+
+
+
+
+# OLD - not used for the analysis
+## POST-HOC ANALYSIS - using emmeans
 ```{r}
 # calculate marginal means for Site and Time Point
 emmeans_results <- emmeans(m.hurd, ~ Site + TP, model = "zero_infl")
@@ -294,9 +345,53 @@ ggplot(nmds_data, aes(NMDS1, NMDS2)) +
 Look for correlations between variables
 
 ```{r}
+library(corrplot)
+
 str(wide.full.dat)
 res <- cor(wide.full.dat[,c(5:13)])
 round(res, 2)
+
+# corrplot(res)
+# corrplot(
+#   res,
+#   method = "color",
+#   col.lab = "black",   # Color of numeric labels
+#   tl.col = "black",    # Color of top labels
+#   cl.col = "black",    # Color of left labels
+#   number.cex = 1       # Set the size of numeric labels
+# )
+# 
+# palette = colorRampPalette(c("skyblue", "white", "salmon")) (10)
+# heatmap(x = res, col = palette, symm = TRUE)
+
+
+# RUN THE BOTTOM CHUNK ALL IN ONE - CREATE PNG - PLOT - CLOSE GRAPHICS DEVICE
+
+# Set up a PNG graphics device with smaller pointsize
+png("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/correlation_plot.png", width = 800, height = 800, units = "px", res = 300, pointsize = 8)
+
+# Create correlation plot with adjusted sizes
+corrplot(
+  res,
+  method = "color",
+  col = colorRampPalette(c("skyblue", "white", "salmon"))(10),
+  type = "upper",
+  order = "hclust",
+  addCoef.col = "black",
+  tl.col = "black",
+  diag = FALSE,
+  number.cex = 0.4,  # Adjusted size of correlation numbers
+  tl.cex = 0.6,     # Size of top labels
+  cl.cex = 0.6,     # Size of left labels
+  mar = c(1, 1, 1, 1),  # Adjust the margin
+  col.lab = "black",  # Color of numeric labels
+  cex.axis = 0.8,  # Adjusted size of the squares
+  cl.ratio = 0.2,  # Adjust the size of the color bar in the legend
+  cl.offset = 1  # Adjust the offset of the color bar in the legend
+)
+
+# Close the PNG graphics device
+dev.off()
 ```
 Interesting:
 - Hard coral & macroalgae: -0.49 = when there's more coral there's less macroalgae
