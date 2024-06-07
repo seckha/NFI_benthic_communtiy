@@ -25,18 +25,22 @@ full_data <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analys
 ```{r}
 transect.percent.cover <- full_data %>%
   group_by(TP, Site, Transect_ID, Category) %>%
-  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
-  mutate(SE = sd(percent_cover) / sqrt(n()))
+  summarize(
+    percent_cover = mean(sum_count),
+    SE = sd(sum_count) / sqrt(n()))
 
 site.percent.cover <- full_data %>%
   group_by(TP, Site, Category) %>%
-  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
-  mutate(SE = sd(percent_cover) / sqrt(n()))
+  summarize(
+    percent_cover = mean(sum_count),
+    SE = sd(sum_count) / sqrt(n()))
 
+# CORRECTION !!!!
 tp.percent.cover <- full_data %>%
   group_by(Site, Category) %>%
-  summarize(percent_cover = mean(sum_count)) %>% # mean() already gives a percentage
-  mutate(SE = sd(percent_cover) / sqrt(n()))
+  summarize(
+    percent_cover = mean(sum_count),
+    SE = sd(sum_count) / sqrt(n()))
 ```
 
 # EXTRACT ASCIDIAN DATA
