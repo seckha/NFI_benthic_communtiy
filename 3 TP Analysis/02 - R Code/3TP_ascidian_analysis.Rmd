@@ -23,6 +23,7 @@ full_data <- read_excel("/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analys
 
 # TRANSECT MEAN COVER
 ```{r}
+# sd() is taken from sum_count (the original data) and not from percent_cover (the aggregated data)
 transect.percent.cover <- full_data %>%
   group_by(TP, Site, Transect_ID, Category) %>%
   summarize(
@@ -35,7 +36,6 @@ site.percent.cover <- full_data %>%
     percent_cover = mean(sum_count),
     SE = sd(sum_count) / sqrt(n()))
 
-# CORRECTION !!!!
 tp.percent.cover <- full_data %>%
   group_by(Site, Category) %>%
   summarize(
@@ -60,6 +60,7 @@ ascd.transect.percent.cover$Site <- factor(ascd.transect.percent.cover$Site, lev
 # save df for statistics
 write.xlsx(ascd.transect.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/01 - Data/Ascidian_transect_percent_cover.xlsx", rowNames = FALSE)
 ```
+
 # EXTRACT SAND DATA
 ```{r}
 # sand percent cover
@@ -177,10 +178,10 @@ write.xlsx(site.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_communi
 
 CB.cat.cov <- ggplot(CB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16),  # Adjust the overall font size
@@ -194,14 +195,15 @@ CB.cat.cov <- ggplot(CB.site.percent.cover, aes(x = TP, y = percent_cover, fill 
     #legend.justification = "center",  # Set legend justification to center
     legend.key.size = unit(0.7, "cm"))
 
+
 ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 - Plots/CB_category_cover.jpg", plot = CB.cat.cov, width = 8, height = 5, dpi = 300)
 
 SB.cat.cov <- ggplot(SB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16),  # Adjust the overall font size
@@ -219,10 +221,10 @@ ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 
 
 EB.cat.cov <- ggplot(EB.site.percent.cover, aes(x = TP, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16),  # Adjust the overall font size
@@ -255,10 +257,10 @@ write.xlsx(tp.percent.cover, file = "/Users/Shannon/GitHub/NFI_benthic_community
 # cover of all sites in one plot
 all.tp.cov <- ggplot(tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16), 
@@ -277,10 +279,10 @@ ggsave(filename = "/Users/Shannon/GitHub/NFI_benthic_community/3 TP Analysis/03 
 
 CB.tp.cov <- ggplot(CB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16),  # Adjust the overall font size
@@ -297,10 +299,10 @@ CB.tp.cov <- ggplot(CB.tp.percent.cover, aes(x = Site, y = percent_cover, fill =
 
 SB.tp.cov <- ggplot(SB.tp.percent.cover, aes(x = Site, y = percent_cover, fill = Category)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(y = "Frequency",
+  labs(y = "Benthic cover (%)",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16), 
@@ -319,7 +321,7 @@ EB.tp.cov <- ggplot(EB.tp.percent.cover, aes(x = Site, y = percent_cover, fill =
   labs(y = "Frequency",
        x = "",
        fill = "") +
-  scale_fill_brewer(palette = "BrBG") +  
+  scale_fill_brewer(palette = "Paired") +  
   theme_classic() +
   theme(
     text = element_text(size = 16), 
@@ -477,7 +479,7 @@ substrate_types <- c("Cyanobacteria",
                      "Sand and sediment",
                      "Turf")
 
-substrate_colors <- brewer.pal(6, "BrBG")
+substrate_colors <- brewer.pal(6, "Paired")
 
 #library(scales)
 #substrate_colors_light <- alpha(substrate_colors, alpha = 0.75) # make it lighter/more transparent
